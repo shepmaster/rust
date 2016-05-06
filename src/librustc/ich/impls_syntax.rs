@@ -94,6 +94,8 @@ impl_stable_hash_for!(enum ::syntax::abi::Abi {
     PtxKernel,
     Msp430Interrupt,
     X86Interrupt,
+    AvrInterrupt,
+    AvrNonBlockingInterrupt,
     Rust,
     C,
     System,
