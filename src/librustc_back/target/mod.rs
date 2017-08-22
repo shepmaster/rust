@@ -891,6 +891,12 @@ impl Target {
     }
 }
 
+impl TargetOptions {
+    pub fn is_specific_cpu(&self) -> bool {
+        self.cpu != "generic"
+    }
+}
+
 impl ToJson for Target {
     fn to_json(&self) -> Json {
         let mut d = BTreeMap::new();
