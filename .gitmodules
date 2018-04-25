@@ -1,7 +1,7 @@
 [submodule "src/llvm"]
 	path = src/llvm
-	url = https://github.com/dylanmckay/llvm.git
-	branch = avr-rust-llvm-release-6-0-0
+	url = https://github.com/shepmaster/llvm.git
+	branch = avr-support-rust-2018-04-24-190a6c
 [submodule "src/jemalloc"]
 	path = src/jemalloc
 	url = https://github.com/rust-lang/jemalloc.git
