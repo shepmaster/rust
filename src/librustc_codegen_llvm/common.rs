@@ -308,6 +308,7 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
                 }
             },
             Scalar::Ptr(ptr) => {
+                let mut do_something_special = false;
                 let alloc_kind = self.tcx.alloc_map.lock().get(ptr.alloc_id);
                 let base_addr = match alloc_kind {
                     Some(GlobalAlloc::Memory(alloc)) => {
@@ -319,6 +320,7 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
                         }
                     }
                     Some(GlobalAlloc::Function(fn_instance)) => {
+                        do_something_special = true;
                         self.get_fn(fn_instance)
                     }
                     Some(GlobalAlloc::Static(def_id)) => {
@@ -327,15 +329,19 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
                     }
                     None => bug!("missing allocation {:?}", ptr.alloc_id),
                 };
-                let llval = unsafe { llvm::LLVMConstInBoundsGEP(
-                    self.const_bitcast(base_addr, self.type_i8p()),
-                    &self.const_usize(ptr.offset.bytes()),
-                    1,
-                ) };
-                if layout.value != layout::Pointer {
-                    unsafe { llvm::LLVMConstPtrToInt(llval, llty) }
+                if do_something_special {
+                    // Something goes here.
                 } else {
-                    self.const_bitcast(llval, llty)
+                    let llval = unsafe { llvm::LLVMConstInBoundsGEP(
+                        self.const_bitcast(base_addr, self.type_i8p()),
+                        &self.const_usize(ptr.offset.bytes()),
+                        1,
+                    ) };
+                    if layout.value != layout::Pointer {
+                        unsafe { llvm::LLVMConstPtrToInt(llval, llty) }
+                    } else {
+                        self.const_bitcast(llval, llty)
+                    }
                 }
             }
         }
