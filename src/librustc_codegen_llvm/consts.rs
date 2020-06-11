@@ -20,7 +20,7 @@ use rustc_middle::ty::{self, Instance, Ty};
 use rustc_middle::{bug, span_bug};
 use rustc_span::symbol::{sym, Symbol};
 use rustc_span::Span;
-use rustc_target::abi::{Align, HasDataLayout, LayoutOf, Primitive, Scalar, Size};
+use rustc_target::abi::{AddressSpace, Align, HasDataLayout, LayoutOf, Primitive, Scalar, Size};
 
 use std::ffi::CStr;
 
@@ -56,7 +56,7 @@ pub fn const_alloc_to_llvm(cx: &CodegenCx<'ll, '_>, alloc: &Allocation) -> &'ll 
         llvals.push(cx.scalar_to_backend(
             Pointer::new(alloc_id, Size::from_bytes(ptr_offset)).into(),
             &Scalar { value: Primitive::Pointer, valid_range: 0..=!0 },
-            cx.type_i8p(),
+            cx.type_i8p(AddressSpace::default()),
         ));
         next_offset = offset + pointer_size;
     }
@@ -496,7 +496,7 @@ impl StaticMethods for CodegenCx<'ll, 'tcx> {
 
             if attrs.flags.contains(CodegenFnAttrFlags::USED) {
                 // This static will be stored in the llvm.used variable which is an array of i8*
-                let cast = llvm::LLVMConstPointerCast(g, self.type_i8p());
+                let cast = llvm::LLVMConstPointerCast(g, self.type_i8p(AddressSpace::default()));
                 self.used_statics.borrow_mut().push(cast);
             }
         }

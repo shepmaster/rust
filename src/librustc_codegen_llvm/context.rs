@@ -20,7 +20,9 @@ use rustc_session::config::{CFGuard, CrateType, DebugInfo};
 use rustc_session::Session;
 use rustc_span::source_map::{Span, DUMMY_SP};
 use rustc_span::symbol::Symbol;
-use rustc_target::abi::{HasDataLayout, LayoutOf, PointeeInfo, Size, TargetDataLayout, VariantIdx};
+use rustc_target::abi::{
+    AddressSpace, HasDataLayout, LayoutOf, PointeeInfo, Size, TargetDataLayout, VariantIdx,
+};
 use rustc_target::spec::{HasTargetSpec, RelocModel, Target, TlsModel};
 
 use std::cell::{Cell, RefCell};
@@ -452,7 +454,7 @@ impl CodegenCx<'b, 'tcx> {
             ($($field_ty:expr),*) => (self.type_struct( &[$($field_ty),*], false))
         }
 
-        let i8p = self.type_i8p();
+        let i8p = self.type_i8p(AddressSpace::default());
         let void = self.type_void();
         let i1 = self.type_i1();
         let t_i8 = self.type_i8();

@@ -174,7 +174,8 @@ impl<'a, 'tcx, V: CodegenObject> PlaceRef<'tcx, V> {
         debug!("struct_field_ptr: DST field offset: {:?}", offset);
 
         // Cast and adjust pointer.
-        let byte_ptr = bx.pointercast(self.llval, bx.cx().type_i8p());
+        let address_space = bx.cx().address_space_of_type(bx.cx().val_ty(self.llval));
+        let byte_ptr = bx.pointercast(self.llval, bx.cx().type_i8p(address_space));
         let byte_ptr = bx.gep(byte_ptr, &[offset]);
 
         // Finally, cast back to the type expected.

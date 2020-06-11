@@ -19,7 +19,7 @@ use rustc_middle::ty::layout::{FnAbiExt, HasTyCtxt};
 use rustc_middle::ty::{self, Instance, Ty, TypeFoldable};
 use rustc_span::{source_map::Span, symbol::Symbol};
 use rustc_target::abi::call::{ArgAbi, FnAbi, PassMode};
-use rustc_target::abi::{self, LayoutOf};
+use rustc_target::abi::{self, AddressSpace, LayoutOf};
 use rustc_target::spec::abi::Abi;
 
 use std::borrow::Cow;
@@ -1245,7 +1245,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
 
     fn landing_pad_type(&self) -> Bx::Type {
         let cx = self.cx;
-        cx.type_struct(&[cx.type_i8p(), cx.type_i32()], false)
+        cx.type_struct(&[cx.type_i8p(AddressSpace::default()), cx.type_i32()], false)
     }
 
     fn unreachable_block(&mut self) -> Bx::BasicBlock {

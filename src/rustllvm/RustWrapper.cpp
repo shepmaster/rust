@@ -1007,6 +1007,10 @@ extern "C" int64_t LLVMRustDIBuilderCreateOpPlusUconst() {
   return dwarf::DW_OP_plus_uconst;
 }
 
+extern "C" uint32_t LLVMRustGetPointerTypeAddressSpace(LLVMTypeRef Ty) {
+  return unwrap<llvm::Type>(Ty)->getPointerAddressSpace();
+}
+
 extern "C" void LLVMRustWriteTypeToString(LLVMTypeRef Ty, RustStringRef Str) {
   RawRustStringOstream OS(Str);
   unwrap<llvm::Type>(Ty)->print(OS);

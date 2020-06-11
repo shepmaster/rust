@@ -48,7 +48,7 @@ use rustc_session::utils::NativeLibKind;
 use rustc_session::Session;
 use rustc_span::Span;
 use rustc_symbol_mangling::test as symbol_names_test;
-use rustc_target::abi::{Abi, Align, LayoutOf, Scalar, VariantIdx};
+use rustc_target::abi::{Abi, AddressSpace, Align, HasDataLayout, LayoutOf, Scalar, VariantIdx};
 
 use std::cmp;
 use std::ops::{Deref, DerefMut};
@@ -423,7 +423,13 @@ pub fn maybe_create_entry_wrapper<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
         // The entry function is either `int main(void)` or `int main(int argc, char **argv)`,
         // depending on whether the target needs `argc` and `argv` to be passed in.
         let llfty = if cx.sess().target.target.options.main_needs_argc_argv {
-            cx.type_func(&[cx.type_int(), cx.type_ptr_to(cx.type_i8p())], cx.type_int())
+            cx.type_func(
+                &[
+                    cx.type_int(),
+                    cx.type_ptr_to(cx.type_i8p(cx.data_layout().instruction_address_space)),
+                ],
+                cx.type_int(),
+            )
         } else {
             cx.type_func(&[], cx.type_int())
         };
@@ -471,7 +477,11 @@ pub fn maybe_create_entry_wrapper<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
             );
             (
                 start_fn,
-                vec![bx.pointercast(rust_main, cx.type_ptr_to(cx.type_i8p())), arg_argc, arg_argv],
+                vec![
+                    bx.pointercast(rust_main, cx.type_ptr_to(cx.type_i8p(AddressSpace::default()))),
+                    arg_argc,
+                    arg_argv,
+                ],
             )
         } else {
             debug!("using user-defined start fn");
@@ -501,7 +511,7 @@ fn get_argc_argv<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
     } else {
         // The Rust start function doesn't need `argc` and `argv`, so just pass zeros.
         let arg_argc = bx.const_int(cx.type_int(), 0);
-        let arg_argv = bx.const_null(cx.type_ptr_to(cx.type_i8p()));
+        let arg_argv = bx.const_null(cx.type_ptr_to(cx.type_i8p(AddressSpace::default())));
         (arg_argc, arg_argv)
     }
 }

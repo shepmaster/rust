@@ -8,7 +8,7 @@ use rustc_codegen_ssa::traits::{
 };
 use rustc_middle::ty::layout::HasTyCtxt;
 use rustc_middle::ty::Ty;
-use rustc_target::abi::{Align, HasDataLayout, LayoutOf, Size};
+use rustc_target::abi::{AddressSpace, Align, HasDataLayout, LayoutOf, Size};
 
 #[allow(dead_code)]
 fn round_pointer_up_to_alignment(
@@ -32,7 +32,7 @@ fn emit_direct_ptr_va_arg(
     slot_size: Align,
     allow_higher_align: bool,
 ) -> (&'ll Value, Align) {
-    let va_list_ptr_ty = bx.cx().type_ptr_to(bx.cx.type_i8p());
+    let va_list_ptr_ty = bx.cx().type_ptr_to(bx.cx.type_i8p(AddressSpace::default()));
     let va_list_addr = if list.layout.llvm_type(bx.cx) != va_list_ptr_ty {
         bx.bitcast(list.immediate(), va_list_ptr_ty)
     } else {
@@ -42,7 +42,15 @@ fn emit_direct_ptr_va_arg(
     let ptr = bx.load(va_list_addr, bx.tcx().data_layout.pointer_align.abi);
 
     let (addr, addr_align) = if allow_higher_align && align > slot_size {
-        (round_pointer_up_to_alignment(bx, ptr, align, bx.cx().type_i8p()), align)
+        (
+            round_pointer_up_to_alignment(
+                bx,
+                ptr,
+                align,
+                bx.cx().type_i8p(AddressSpace::default()),
+            ),
+            align,
+        )
     } else {
         (ptr, slot_size)
     };

@@ -16,7 +16,7 @@ use rustc_middle::bug;
 use rustc_middle::mir::interpret::{Allocation, GlobalAlloc, Scalar};
 use rustc_middle::ty::layout::TyAndLayout;
 use rustc_span::symbol::Symbol;
-use rustc_target::abi::{self, HasDataLayout, LayoutOf, Pointer, Size};
+use rustc_target::abi::{self, AddressSpace, HasDataLayout, LayoutOf, Pointer, Size};
 
 use libc::{c_char, c_uint};
 use log::debug;
@@ -265,7 +265,7 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
                 };
                 let llval = unsafe {
                     llvm::LLVMConstInBoundsGEP(
-                        self.const_bitcast(base_addr, self.type_i8p()),
+                        self.const_bitcast(base_addr, self.type_i8p(AddressSpace::default())),
                         &self.const_usize(ptr.offset.bytes()),
                         1,
                     )
@@ -296,7 +296,7 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
 
             let llval = unsafe {
                 llvm::LLVMConstInBoundsGEP(
-                    self.const_bitcast(base_addr, self.type_i8p()),
+                    self.const_bitcast(base_addr, self.type_i8p(AddressSpace::default())),
                     &self.const_usize(offset.bytes()),
                     1,
                 )
