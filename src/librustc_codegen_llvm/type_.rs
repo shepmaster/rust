@@ -15,7 +15,7 @@ use rustc_middle::bug;
 use rustc_middle::ty::layout::TyAndLayout;
 use rustc_middle::ty::Ty;
 use rustc_target::abi::call::{CastTarget, FnAbi, Reg};
-use rustc_target::abi::{AddressSpace, Align, Integer, Size};
+use rustc_target::abi::{AddressSpace, Align, HasDataLayout, Integer, Size};
 
 use std::fmt;
 use std::ptr;
@@ -194,21 +194,36 @@ impl BaseTypeMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         unsafe { llvm::LLVMRustGetTypeKind(ty).to_generic() }
     }
 
-    fn type_ptr_to(&self, ty: &'ll Type) -> &'ll Type {
-        assert_ne!(
-            self.type_kind(ty),
-            TypeKind::Function,
-            "don't call ptr_to on function types, use ptr_to_llvm_type on FnAbi instead or explicitly specify an address space if it makes sense"
-        );
-        ty.ptr_to(AddressSpace::default())
-    }
-
-    fn type_ptr_to_ext(&self, ty: &'ll Type, address_space: AddressSpace) -> &'ll Type {
+    fn type_ptr_to(&self, ty: &'ll Type, address_space: AddressSpace) -> &'ll Type {
+        if self.type_kind(ty) == TypeKind::Function {
+            assert!(
+                address_space == self.data_layout().instruction_address_space,
+                "attempted to create a function pointer to the wrong address space: {:?} ({:?})",
+                ty,
+                self.type_kind(ty)
+            );
+        }
         ty.ptr_to(address_space)
     }
 
     fn address_space_of_type(&self, ty: &'ll Type) -> AddressSpace {
-        ty.address_space()
+        let space_number = unsafe { llvm::LLVMRustGetPointerTypeAddressSpace(ty) };
+        assert_ne!(
+            space_number, -1,
+            "attempted to take the address space of a non-pointer type: {:?}",
+            ty
+        );
+        AddressSpace(space_number as u32)
+    }
+
+    fn address_space_of_value(&self, value: &'ll Value) -> AddressSpace {
+        let space_number = unsafe { llvm::LLVMRustGetPointerAddressSpace(value) };
+        assert_ne!(
+            space_number, -1,
+            "attempted to take the address space of a non-pointer value: {:?}",
+            value
+        );
+        AddressSpace(space_number as u32)
     }
 
     fn element_type(&self, ty: &'ll Type) -> &'ll Type {
@@ -250,11 +265,6 @@ impl Type {
 
     pub fn i8p_llcx(llcx: &llvm::Context) -> &Type {
         Type::i8_llcx(llcx).ptr_to(AddressSpace::default())
-    }
-
-    pub fn address_space(&self) -> AddressSpace {
-        let space_number = unsafe { llvm::LLVMRustGetPointerTypeAddressSpace(self) };
-        AddressSpace(space_number)
     }
 
     fn ptr_to(&self, address_space: AddressSpace) -> &Type {

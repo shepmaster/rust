@@ -24,7 +24,11 @@ use rustc_target::abi::{AddressSpace, Align, HasDataLayout, LayoutOf, Primitive,
 
 use std::ffi::CStr;
 
-pub fn const_alloc_to_llvm(cx: &CodegenCx<'ll, '_>, alloc: &Allocation) -> &'ll Value {
+pub fn const_alloc_to_llvm(
+    cx: &CodegenCx<'ll, '_>,
+    alloc: &Allocation,
+    address_space: AddressSpace,
+) -> &'ll Value {
     let mut llvals = Vec::with_capacity(alloc.relocations().len() + 1);
     let dl = cx.data_layout();
     let pointer_size = dl.pointer_size.bytes() as usize;
@@ -56,7 +60,7 @@ pub fn const_alloc_to_llvm(cx: &CodegenCx<'ll, '_>, alloc: &Allocation) -> &'ll 
         llvals.push(cx.scalar_to_backend(
             Pointer::new(alloc_id, Size::from_bytes(ptr_offset)).into(),
             &Scalar { value: Primitive::Pointer, valid_range: 0..=!0 },
-            cx.type_i8p(AddressSpace::default()),
+            cx.type_i8p(address_space),
         ));
         next_offset = offset + pointer_size;
     }
@@ -79,11 +83,17 @@ pub fn codegen_static_initializer(
     cx: &CodegenCx<'ll, 'tcx>,
     def_id: DefId,
 ) -> Result<(&'ll Value, &'tcx Allocation), ErrorHandled> {
+    let address_space = if cx.tcx.type_of(def_id).is_fn() {
+        cx.data_layout().instruction_address_space
+    } else {
+        AddressSpace::default()
+    };
+
     let alloc = match cx.tcx.const_eval_poly(def_id)? {
         ConstValue::ByRef { alloc, offset } if offset.bytes() == 0 => alloc,
         val => bug!("static const eval returned {:#?}", val),
     };
-    Ok((const_alloc_to_llvm(cx, alloc), alloc))
+    Ok((const_alloc_to_llvm(cx, alloc, address_space), alloc))
 }
 
 fn set_global_alignment(cx: &CodegenCx<'ll, '_>, gv: &'ll Value, mut align: Align) {
@@ -212,12 +222,15 @@ impl CodegenCx<'ll, 'tcx> {
         let g = if let Some(def_id) = def_id.as_local() {
             let id = self.tcx.hir().as_local_hir_id(def_id);
             let llty = self.layout_of(ty).llvm_type(self);
+
             // FIXME: refactor this to work without accessing the HIR
             let (g, attrs) = match self.tcx.hir().get(id) {
                 Node::Item(&hir::Item { attrs, span, kind: hir::ItemKind::Static(..), .. }) => {
                     let sym_str = sym.as_str();
                     if let Some(g) = self.get_declared_value(&sym_str) {
-                        if self.val_ty(g) != self.type_ptr_to(llty) {
+                        if self.val_ty(g)
+                            != self.type_ptr_to(llty, self.address_space_of_type(llty))
+                        {
                             span_bug!(span, "Conflicting types for static");
                         }
                     }
@@ -496,7 +509,8 @@ impl StaticMethods for CodegenCx<'ll, 'tcx> {
 
             if attrs.flags.contains(CodegenFnAttrFlags::USED) {
                 // This static will be stored in the llvm.used variable which is an array of i8*
-                let cast = llvm::LLVMConstPointerCast(g, self.type_i8p(AddressSpace::default()));
+                let cast =
+                    llvm::LLVMConstPointerCast(g, self.type_i8p(self.address_space_of_value(g)));
                 self.used_statics.borrow_mut().push(cast);
             }
         }

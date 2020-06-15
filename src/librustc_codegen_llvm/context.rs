@@ -394,8 +394,10 @@ impl MiscMethods<'tcx> for CodegenCx<'ll, 'tcx> {
     fn create_used_variable(&self) {
         let name = const_cstr!("llvm.used");
         let section = const_cstr!("llvm.metadata");
-        let array =
-            self.const_array(&self.type_ptr_to(self.type_i8()), &*self.used_statics.borrow());
+        let array = self.const_array(
+            &self.type_ptr_to(self.type_i8(), AddressSpace::default()),
+            &*self.used_statics.borrow(),
+        );
 
         unsafe {
             let g = llvm::LLVMAddGlobal(self.llmod, self.val_ty(array), name.as_ptr());

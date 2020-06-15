@@ -19,7 +19,7 @@ use rustc_middle::ty::layout::{FnAbiExt, HasTyCtxt};
 use rustc_middle::ty::{self, Instance, Ty, TypeFoldable};
 use rustc_span::{source_map::Span, symbol::Symbol};
 use rustc_target::abi::call::{ArgAbi, FnAbi, PassMode};
-use rustc_target::abi::{self, AddressSpace, LayoutOf};
+use rustc_target::abi::{self, AddressSpace, HasDataLayout, LayoutOf};
 use rustc_target::spec::abi::Abi;
 
 use std::borrow::Cow;
@@ -293,7 +293,13 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         llval
                     }
                 };
-                let addr = bx.pointercast(llslot, bx.type_ptr_to(bx.cast_backend_type(&cast_ty)));
+                let addr = bx.pointercast(
+                    llslot,
+                    bx.type_ptr_to(
+                        bx.cast_backend_type(&cast_ty),
+                        bx.cx().address_space_of_value(llslot),
+                    ),
+                );
                 bx.load(addr, self.fn_abi.ret.layout.align.abi)
             }
         };
@@ -652,7 +658,13 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             let dest = match ret_dest {
                 _ if fn_abi.ret.is_indirect() => llargs[0],
                 ReturnDest::Nothing => {
-                    bx.const_undef(bx.type_ptr_to(bx.arg_memory_ty(&fn_abi.ret)))
+                    let backend_type = bx.arg_memory_ty(&fn_abi.ret);
+                    let address_space = if fn_abi.ret.layout.ty.is_fn() {
+                        bx.cx().data_layout().instruction_address_space
+                    } else {
+                        AddressSpace::default()
+                    };
+                    bx.const_undef(bx.type_ptr_to(backend_type, address_space))
                 }
                 ReturnDest::IndirectOperand(dst, _) | ReturnDest::Store(dst) => dst.llval,
                 ReturnDest::DirectOperand(_) => {
@@ -1132,7 +1144,13 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         if by_ref && !arg.is_indirect() {
             // Have to load the argument, maybe while casting it.
             if let PassMode::Cast(ty) = arg.mode {
-                let addr = bx.pointercast(llval, bx.type_ptr_to(bx.cast_backend_type(&ty)));
+                let addr = bx.pointercast(
+                    llval,
+                    bx.type_ptr_to(
+                        bx.cast_backend_type(&ty),
+                        bx.cx().address_space_of_value(llval),
+                    ),
+                );
                 llval = bx.load(addr, align.min(arg.layout.align.abi));
             } else {
                 // We can't use `PlaceRef::load` here because the argument
@@ -1365,7 +1383,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
     ) {
         let src = self.codegen_operand(bx, src);
         let llty = bx.backend_type(src.layout);
-        let cast_ptr = bx.pointercast(dst.llval, bx.type_ptr_to(llty));
+        let cast_ptr = bx.pointercast(
+            dst.llval,
+            bx.type_ptr_to(llty, bx.cx().address_space_of_value(dst.llval)),
+        );
         let align = src.layout.align.abi.min(dst.align);
         src.val.store(bx, PlaceRef::new_sized_aligned(cast_ptr, src.layout, align));
     }

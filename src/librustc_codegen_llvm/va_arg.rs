@@ -32,7 +32,8 @@ fn emit_direct_ptr_va_arg(
     slot_size: Align,
     allow_higher_align: bool,
 ) -> (&'ll Value, Align) {
-    let va_list_ptr_ty = bx.cx().type_ptr_to(bx.cx.type_i8p(AddressSpace::default()));
+    let va_list_ptr_ty =
+        bx.cx().type_ptr_to(bx.cx.type_i8p(AddressSpace::default()), AddressSpace::default());
     let va_list_addr = if list.layout.llvm_type(bx.cx) != va_list_ptr_ty {
         bx.bitcast(list.immediate(), va_list_ptr_ty)
     } else {
@@ -47,7 +48,7 @@ fn emit_direct_ptr_va_arg(
                 bx,
                 ptr,
                 align,
-                bx.cx().type_i8p(AddressSpace::default()),
+                bx.cx().type_i8p(bx.cx().address_space_of_value(ptr)),
             ),
             align,
         )
@@ -63,9 +64,9 @@ fn emit_direct_ptr_va_arg(
     if size.bytes() < slot_size.bytes() && &*bx.tcx().sess.target.target.target_endian == "big" {
         let adjusted_size = bx.cx().const_i32((slot_size.bytes() - size.bytes()) as i32);
         let adjusted = bx.inbounds_gep(addr, &[adjusted_size]);
-        (bx.bitcast(adjusted, bx.cx().type_ptr_to(llty)), addr_align)
+        (bx.bitcast(adjusted, bx.cx().type_ptr_to(llty, AddressSpace::default())), addr_align)
     } else {
-        (bx.bitcast(addr, bx.cx().type_ptr_to(llty)), addr_align)
+        (bx.bitcast(addr, bx.cx().type_ptr_to(llty, AddressSpace::default())), addr_align)
     }
 }
 

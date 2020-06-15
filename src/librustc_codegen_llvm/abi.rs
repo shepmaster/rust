@@ -14,7 +14,7 @@ pub use rustc_middle::ty::layout::{FAT_PTR_ADDR, FAT_PTR_EXTRA};
 use rustc_middle::ty::Ty;
 use rustc_target::abi::call::ArgAbi;
 pub use rustc_target::abi::call::*;
-use rustc_target::abi::{self, HasDataLayout, Int, LayoutOf};
+use rustc_target::abi::{self, AddressSpace, HasDataLayout, Int, LayoutOf};
 pub use rustc_target::spec::abi::Abi;
 
 use libc::c_uint;
@@ -207,7 +207,8 @@ impl ArgAbiExt<'ll, 'tcx> for ArgAbi<'tcx, Ty<'tcx>> {
             // uses it for i16 -> {i8, i8}, but not for i24 -> {i8, i8, i8}.
             let can_store_through_cast_ptr = false;
             if can_store_through_cast_ptr {
-                let cast_ptr_llty = bx.type_ptr_to(cast.llvm_type(bx));
+                let cast_ptr_llty =
+                    bx.type_ptr_to(cast.llvm_type(bx), bx.cx().address_space_of_value(dst.llval));
                 let cast_dst = bx.pointercast(dst.llval, cast_ptr_llty);
                 bx.store(val, cast_dst, self.layout.align.abi);
             } else {
@@ -323,7 +324,8 @@ impl<'tcx> FnAbiLlvmExt<'tcx> for FnAbi<'tcx, Ty<'tcx>> {
             PassMode::Direct(_) | PassMode::Pair(..) => self.ret.layout.immediate_llvm_type(cx),
             PassMode::Cast(cast) => cast.llvm_type(cx),
             PassMode::Indirect(..) => {
-                llargument_tys.push(cx.type_ptr_to(self.ret.memory_ty(cx)));
+                llargument_tys
+                    .push(cx.type_ptr_to(self.ret.memory_ty(cx), AddressSpace::default()));
                 cx.type_void()
             }
         };
@@ -350,7 +352,9 @@ impl<'tcx> FnAbiLlvmExt<'tcx> for FnAbi<'tcx, Ty<'tcx>> {
                     continue;
                 }
                 PassMode::Cast(cast) => cast.llvm_type(cx),
-                PassMode::Indirect(_, None) => cx.type_ptr_to(arg.memory_ty(cx)),
+                PassMode::Indirect(_, None) => {
+                    cx.type_ptr_to(arg.memory_ty(cx), AddressSpace::default())
+                }
             };
             llargument_tys.push(llarg_ty);
         }

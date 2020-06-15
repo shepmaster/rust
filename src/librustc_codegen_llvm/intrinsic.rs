@@ -310,7 +310,10 @@ impl IntrinsicCallMethods<'tcx> for Builder<'a, 'll, 'tcx> {
                 let tp_ty = substs.type_at(0);
                 let mut ptr = args[0].immediate();
                 if let PassMode::Cast(ty) = fn_abi.ret.mode {
-                    ptr = self.pointercast(ptr, self.type_ptr_to(ty.llvm_type(self)));
+                    ptr = self.pointercast(
+                        ptr,
+                        self.type_ptr_to(ty.llvm_type(self), self.cx().address_space_of_value(ptr)),
+                    );
                 }
                 let load = self.volatile_load(ptr);
                 let align = if name == "unaligned_volatile_load" {
@@ -753,7 +756,10 @@ impl IntrinsicCallMethods<'tcx> for Builder<'a, 'll, 'tcx> {
 
         if !fn_abi.ret.is_ignore() {
             if let PassMode::Cast(ty) = fn_abi.ret.mode {
-                let ptr_llty = self.type_ptr_to(ty.llvm_type(self));
+                let ptr_llty = self.type_ptr_to(
+                    ty.llvm_type(self),
+                    self.cx().address_space_of_value(result.llval),
+                );
                 let ptr = self.pointercast(result.llval, ptr_llty);
                 self.store(llval, ptr, result.align);
             } else {
@@ -1040,7 +1046,7 @@ fn codegen_gnu_try(
         let tydesc = match bx.tcx().lang_items().eh_catch_typeinfo() {
             Some(tydesc) => {
                 let tydesc = bx.get_static(tydesc);
-                bx.bitcast(tydesc, bx.type_i8p(AddressSpace::default()))
+                bx.bitcast(tydesc, bx.type_i8p(bx.cx().address_space_of_value(tydesc)))
             }
             None => bx.const_null(bx.type_i8p(AddressSpace::default())),
         };
@@ -1534,7 +1540,7 @@ fn generic_simd_intrinsic(
             _ => unreachable!(),
         };
         while no_pointers > 0 {
-            elem_ty = cx.type_ptr_to(elem_ty);
+            elem_ty = cx.type_ptr_to(elem_ty, AddressSpace::default());
             no_pointers -= 1;
         }
         cx.type_vector(elem_ty, vec_len)

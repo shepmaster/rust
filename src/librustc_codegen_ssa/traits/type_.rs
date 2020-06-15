@@ -26,12 +26,14 @@ pub trait BaseTypeMethods<'tcx>: Backend<'tcx> {
     fn type_func(&self, args: &[Self::Type], ret: Self::Type) -> Self::Type;
     fn type_struct(&self, els: &[Self::Type], packed: bool) -> Self::Type;
     fn type_kind(&self, ty: Self::Type) -> TypeKind;
-    fn type_ptr_to(&self, ty: Self::Type) -> Self::Type;
-    fn type_ptr_to_ext(&self, ty: Self::Type, address_space: AddressSpace) -> Self::Type;
+    fn type_ptr_to(&self, ty: Self::Type, address_space: AddressSpace) -> Self::Type;
     fn element_type(&self, ty: Self::Type) -> Self::Type;
 
     /// Returns the number of elements in `self` if it is a LLVM vector type.
     fn vector_length(&self, ty: Self::Type) -> usize;
+
+    /// Gets the address space that a given pointer refers to.
+    fn address_space_of_value(&self, pointer_val: Self::Value) -> AddressSpace;
 
     /// Gets the address space that a given pointer type refers to.
     fn address_space_of_type(&self, pointer_ty: Self::Type) -> AddressSpace;
@@ -46,7 +48,7 @@ pub trait BaseTypeMethods<'tcx>: Backend<'tcx> {
 
 pub trait DerivedTypeMethods<'tcx>: BaseTypeMethods<'tcx> + MiscMethods<'tcx> {
     fn type_i8p(&self, address_space: AddressSpace) -> Self::Type {
-        self.type_ptr_to_ext(self.type_i8(), address_space)
+        self.type_ptr_to(self.type_i8(), address_space)
     }
 
     fn type_int(&self) -> Self::Type {
@@ -95,8 +97,12 @@ pub trait DerivedTypeMethods<'tcx>: BaseTypeMethods<'tcx> + MiscMethods<'tcx> {
         }
     }
 
-    fn address_space_of_value(&self, pointer_val: Self::Value) -> AddressSpace {
-        self.address_space_of_type(self.val_ty(pointer_val))
+    fn default_address_space_of_type(&self, ty: Ty<'tcx>) -> AddressSpace {
+        if ty.is_fn() {
+            self.data_layout().instruction_address_space
+        } else {
+            AddressSpace::default()
+        }
     }
 }
 

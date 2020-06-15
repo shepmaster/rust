@@ -7,7 +7,7 @@ use rustc_middle::bug;
 use rustc_middle::ty::layout::{FnAbiExt, TyAndLayout};
 use rustc_middle::ty::print::obsolete::DefPathBasedNames;
 use rustc_middle::ty::{self, Ty, TypeFoldable};
-use rustc_target::abi::{Abi, Align, FieldsShape};
+use rustc_target::abi::{Abi, AddressSpace, Align, FieldsShape};
 use rustc_target::abi::{Int, Pointer, F32, F64};
 use rustc_target::abi::{LayoutOf, PointeeInfo, Scalar, Size, TyAndLayoutMethods, Variants};
 
@@ -238,11 +238,12 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
             }
             let llty = match self.ty.kind {
                 ty::Ref(_, ty, _) | ty::RawPtr(ty::TypeAndMut { ty, .. }) => {
-                    cx.type_ptr_to(cx.layout_of(ty).llvm_type(cx))
+                    cx.type_ptr_to(cx.layout_of(ty).llvm_type(cx), AddressSpace::default())
                 }
-                ty::Adt(def, _) if def.is_box() => {
-                    cx.type_ptr_to(cx.layout_of(self.ty.boxed_ty()).llvm_type(cx))
-                }
+                ty::Adt(def, _) if def.is_box() => cx.type_ptr_to(
+                    cx.layout_of(self.ty.boxed_ty()).llvm_type(cx),
+                    AddressSpace::default(),
+                ),
                 ty::FnPtr(sig) => cx.fn_ptr_backend_type(&FnAbi::of_fn_ptr(cx, sig, &[])),
                 _ => self.scalar_llvm_type_at(cx, scalar, Size::ZERO),
             };
@@ -315,7 +316,7 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
                 } else {
                     cx.type_i8()
                 };
-                cx.type_ptr_to(pointee)
+                cx.type_ptr_to(pointee, AddressSpace::default())
             }
         }
     }

@@ -9,6 +9,7 @@
 #include "llvm/Object/Archive.h"
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Bitcode/BitcodeWriterPass.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/ADT/Optional.h"
 
@@ -1007,8 +1008,26 @@ extern "C" int64_t LLVMRustDIBuilderCreateOpPlusUconst() {
   return dwarf::DW_OP_plus_uconst;
 }
 
-extern "C" uint32_t LLVMRustGetPointerTypeAddressSpace(LLVMTypeRef Ty) {
-  return unwrap<llvm::Type>(Ty)->getPointerAddressSpace();
+// Returns `-1` if the value is not a pointer, otherwise returns the actual address space
+extern "C" int64_t LLVMRustGetPointerTypeAddressSpace(LLVMTypeRef Ty) {
+  auto UnwrappedTy = unwrap<llvm::Type>(Ty);
+
+  if (llvm::isa<PointerType>(UnwrappedTy)) {
+    return UnwrappedTy->getPointerAddressSpace();
+  } else {
+    return -1;
+  }
+}
+
+// Returns `-1` if the value is not a pointer, otherwise returns the actual address space
+extern "C" int64_t LLVMRustGetPointerAddressSpace(LLVMValueRef Val) {
+  auto ValTy = unwrap<llvm::Value>(Val)->getType();
+
+  if (llvm::isa<PointerType>(ValTy)) {
+    return ValTy->getPointerAddressSpace();
+  } else {
+    return -1;
+  }
 }
 
 extern "C" void LLVMRustWriteTypeToString(LLVMTypeRef Ty, RustStringRef Str) {

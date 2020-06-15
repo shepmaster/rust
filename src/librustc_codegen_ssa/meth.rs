@@ -2,6 +2,7 @@ use crate::traits::*;
 
 use rustc_middle::ty::{self, Instance, Ty};
 use rustc_target::abi::call::FnAbi;
+use rustc_target::abi::AddressSpace;
 
 #[derive(Copy, Clone, Debug)]
 pub struct VirtualIndex(u64);
@@ -24,7 +25,10 @@ impl<'a, 'tcx> VirtualIndex {
         // Load the data pointer from the object.
         debug!("get_fn({:?}, {:?})", llvtable, self);
 
-        let llvtable = bx.pointercast(llvtable, bx.type_ptr_to(bx.fn_ptr_backend_type(fn_abi)));
+        let llvtable = bx.pointercast(
+            llvtable,
+            bx.type_ptr_to(bx.fn_ptr_backend_type(fn_abi), AddressSpace::default()),
+        );
         let ptr_align = bx.tcx().data_layout.pointer_align.abi;
         let gep = bx.inbounds_gep(llvtable, &[bx.const_usize(self.0)]);
         let ptr = bx.load(gep, ptr_align);
@@ -42,7 +46,8 @@ impl<'a, 'tcx> VirtualIndex {
         // Load the data pointer from the object.
         debug!("get_int({:?}, {:?})", llvtable, self);
 
-        let llvtable = bx.pointercast(llvtable, bx.type_ptr_to(bx.type_isize()));
+        let llvtable =
+            bx.pointercast(llvtable, bx.type_ptr_to(bx.type_isize(), AddressSpace::default()));
         let usize_align = bx.tcx().data_layout.pointer_align.abi;
         let gep = bx.inbounds_gep(llvtable, &[bx.const_usize(self.0)]);
         let ptr = bx.load(gep, usize_align);
