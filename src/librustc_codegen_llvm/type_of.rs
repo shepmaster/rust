@@ -311,12 +311,13 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
             F64 => cx.type_f64(),
             Pointer => {
                 // If we know the alignment, pick something better than i8.
-                let pointee = if let Some(pointee) = self.pointee_info_at(cx, offset) {
-                    cx.type_pointee_for_align(pointee.align)
-                } else {
-                    cx.type_i8()
-                };
-                cx.type_ptr_to(pointee, AddressSpace::default())
+                let (pointee, address_space) =
+                    if let Some(pointee) = self.pointee_info_at(cx, offset) {
+                        (cx.type_pointee_for_align(pointee.align), pointee.address_space)
+                    } else {
+                        (cx.type_i8(), AddressSpace::default())
+                    };
+                cx.type_ptr_to(pointee, address_space)
             }
         }
     }
