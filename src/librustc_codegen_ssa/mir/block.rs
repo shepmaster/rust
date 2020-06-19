@@ -662,7 +662,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     let address_space = if fn_abi.ret.layout.ty.is_fn() {
                         bx.cx().data_layout().instruction_address_space
                     } else {
-                        AddressSpace::default()
+                        AddressSpace::DATA
                     };
                     bx.const_undef(bx.type_ptr_to(backend_type, address_space))
                 }
@@ -1263,7 +1263,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
 
     fn landing_pad_type(&self) -> Bx::Type {
         let cx = self.cx;
-        cx.type_struct(&[cx.type_i8p(AddressSpace::default()), cx.type_i32()], false)
+        cx.type_struct(&[cx.type_i8p(AddressSpace::DATA), cx.type_i32()], false)
     }
 
     fn unreachable_block(&mut self) -> Bx::BasicBlock {

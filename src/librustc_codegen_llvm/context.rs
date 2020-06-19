@@ -395,7 +395,7 @@ impl MiscMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         let name = const_cstr!("llvm.used");
         let section = const_cstr!("llvm.metadata");
         let array = self.const_array(
-            &self.type_ptr_to(self.type_i8(), AddressSpace::default()),
+            &self.type_ptr_to(self.type_i8(), AddressSpace::DATA),
             &*self.used_statics.borrow(),
         );
 
@@ -456,7 +456,7 @@ impl CodegenCx<'b, 'tcx> {
             ($($field_ty:expr),*) => (self.type_struct( &[$($field_ty),*], false))
         }
 
-        let i8p = self.type_i8p(AddressSpace::default());
+        let i8p = self.type_i8p(AddressSpace::DATA);
         let void = self.type_void();
         let i1 = self.type_i1();
         let t_i8 = self.type_i8();

@@ -324,8 +324,7 @@ impl<'tcx> FnAbiLlvmExt<'tcx> for FnAbi<'tcx, Ty<'tcx>> {
             PassMode::Direct(_) | PassMode::Pair(..) => self.ret.layout.immediate_llvm_type(cx),
             PassMode::Cast(cast) => cast.llvm_type(cx),
             PassMode::Indirect(..) => {
-                llargument_tys
-                    .push(cx.type_ptr_to(self.ret.memory_ty(cx), AddressSpace::default()));
+                llargument_tys.push(cx.type_ptr_to(self.ret.memory_ty(cx), AddressSpace::DATA));
                 cx.type_void()
             }
         };
@@ -353,7 +352,7 @@ impl<'tcx> FnAbiLlvmExt<'tcx> for FnAbi<'tcx, Ty<'tcx>> {
                 }
                 PassMode::Cast(cast) => cast.llvm_type(cx),
                 PassMode::Indirect(_, None) => {
-                    cx.type_ptr_to(arg.memory_ty(cx), AddressSpace::default())
+                    cx.type_ptr_to(arg.memory_ty(cx), AddressSpace::DATA)
                 }
             };
             llargument_tys.push(llarg_ty);

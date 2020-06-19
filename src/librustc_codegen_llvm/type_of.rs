@@ -238,11 +238,11 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
             }
             let llty = match self.ty.kind {
                 ty::Ref(_, ty, _) | ty::RawPtr(ty::TypeAndMut { ty, .. }) => {
-                    cx.type_ptr_to(cx.layout_of(ty).llvm_type(cx), AddressSpace::default())
+                    cx.type_ptr_to(cx.layout_of(ty).llvm_type(cx), AddressSpace::DATA)
                 }
                 ty::Adt(def, _) if def.is_box() => cx.type_ptr_to(
                     cx.layout_of(self.ty.boxed_ty()).llvm_type(cx),
-                    AddressSpace::default(),
+                    AddressSpace::DATA,
                 ),
                 ty::FnPtr(sig) => cx.fn_ptr_backend_type(&FnAbi::of_fn_ptr(cx, sig, &[])),
                 _ => self.scalar_llvm_type_at(cx, scalar, Size::ZERO),
@@ -315,7 +315,7 @@ impl<'tcx> LayoutLlvmExt<'tcx> for TyAndLayout<'tcx> {
                     if let Some(pointee) = self.pointee_info_at(cx, offset) {
                         (cx.type_pointee_for_align(pointee.align), pointee.address_space)
                     } else {
-                        (cx.type_i8(), AddressSpace::default())
+                        (cx.type_i8(), AddressSpace::DATA)
                     };
                 cx.type_ptr_to(pointee, address_space)
             }

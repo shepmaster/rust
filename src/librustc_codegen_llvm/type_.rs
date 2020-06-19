@@ -264,7 +264,7 @@ impl Type {
     }
 
     pub fn i8p_llcx(llcx: &llvm::Context) -> &Type {
-        Type::i8_llcx(llcx).ptr_to(AddressSpace::default())
+        Type::i8_llcx(llcx).ptr_to(AddressSpace::DATA)
     }
 
     fn ptr_to(&self, address_space: AddressSpace) -> &Type {

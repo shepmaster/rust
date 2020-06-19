@@ -429,7 +429,7 @@ pub fn maybe_create_entry_wrapper<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
             cx.type_func(
                 &[
                     cx.type_int(),
-                    cx.type_ptr_to(cx.type_i8p(AddressSpace::default()), AddressSpace::default()),
+                    cx.type_ptr_to(cx.type_i8p(AddressSpace::DATA), AddressSpace::DATA),
                 ],
                 cx.type_int(),
             )
@@ -520,9 +520,8 @@ fn get_argc_argv<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
     } else {
         // The Rust start function doesn't need `argc` and `argv`, so just pass zeros.
         let arg_argc = bx.const_int(cx.type_int(), 0);
-        let arg_argv = bx.const_null(
-            cx.type_ptr_to(cx.type_i8p(AddressSpace::default()), AddressSpace::default()),
-        );
+        let arg_argv =
+            bx.const_null(cx.type_ptr_to(cx.type_i8p(AddressSpace::DATA), AddressSpace::DATA));
         (arg_argc, arg_argv)
     }
 }

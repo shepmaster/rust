@@ -27,7 +27,7 @@ impl<'a, 'tcx> VirtualIndex {
 
         let llvtable = bx.pointercast(
             llvtable,
-            bx.type_ptr_to(bx.fn_ptr_backend_type(fn_abi), AddressSpace::default()),
+            bx.type_ptr_to(bx.fn_ptr_backend_type(fn_abi), AddressSpace::DATA),
         );
         let ptr_align = bx.tcx().data_layout.pointer_align.abi;
         let gep = bx.inbounds_gep(llvtable, &[bx.const_usize(self.0)]);
@@ -47,7 +47,7 @@ impl<'a, 'tcx> VirtualIndex {
         debug!("get_int({:?}, {:?})", llvtable, self);
 
         let llvtable =
-            bx.pointercast(llvtable, bx.type_ptr_to(bx.type_isize(), AddressSpace::default()));
+            bx.pointercast(llvtable, bx.type_ptr_to(bx.type_isize(), AddressSpace::DATA));
         let usize_align = bx.tcx().data_layout.pointer_align.abi;
         let gep = bx.inbounds_gep(llvtable, &[bx.const_usize(self.0)]);
         let ptr = bx.load(gep, usize_align);

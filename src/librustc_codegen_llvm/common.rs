@@ -208,7 +208,7 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
             self.const_cstr(s, false),
             self.type_ptr_to(
                 self.layout_of(self.tcx.types.str_).llvm_type(self),
-                AddressSpace::default(),
+                AddressSpace::DATA,
             ),
         );
         (cs, self.const_usize(len as u64))

@@ -56,7 +56,7 @@ impl Default for TargetDataLayout {
                 (Size::from_bits(64), AbiAndPrefAlign::new(align(64))),
                 (Size::from_bits(128), AbiAndPrefAlign::new(align(128))),
             ],
-            instruction_address_space: AddressSpace::default(),
+            instruction_address_space: AddressSpace::DATA,
         }
     }
 }
@@ -752,8 +752,13 @@ impl FieldsShape {
 /// An identifier that specifies the address space that some operation
 /// should operate on. Special address spaces have an effect on code generation,
 /// depending on the target and the address spaces it implements.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AddressSpace(pub u32);
+
+impl AddressSpace {
+    /// The default address space, corresponding to data space.
+    pub const DATA: Self = AddressSpace(0);
+}
 
 /// Describes how values of the type are passed by target ABIs,
 /// in terms of categories of C types there are ABI rules for.

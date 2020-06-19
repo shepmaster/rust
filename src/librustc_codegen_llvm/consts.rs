@@ -86,7 +86,7 @@ pub fn codegen_static_initializer(
     let address_space = if cx.tcx.type_of(def_id).is_fn() {
         cx.data_layout().instruction_address_space
     } else {
-        AddressSpace::default()
+        AddressSpace::DATA
     };
 
     let alloc = match cx.tcx.const_eval_poly(def_id)? {

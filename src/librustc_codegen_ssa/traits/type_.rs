@@ -98,11 +98,7 @@ pub trait DerivedTypeMethods<'tcx>: BaseTypeMethods<'tcx> + MiscMethods<'tcx> {
     }
 
     fn default_address_space_of_type(&self, ty: Ty<'tcx>) -> AddressSpace {
-        if ty.is_fn() {
-            self.data_layout().instruction_address_space
-        } else {
-            AddressSpace::default()
-        }
+        if ty.is_fn() { self.data_layout().instruction_address_space } else { AddressSpace::DATA }
     }
 }
 
