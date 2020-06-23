@@ -249,8 +249,7 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
             Scalar::Ptr(ptr) => {
                 let base_addr = match self.tcx.global_alloc(ptr.alloc_id) {
                     GlobalAlloc::Memory(alloc) => {
-                        let init =
-                            const_alloc_to_llvm(self, alloc, self.address_space_of_type(llty));
+                        let init = const_alloc_to_llvm(self, alloc);
                         let value = match alloc.mutability {
                             Mutability::Mut => self.static_addr_of_mut(init, alloc.align, None),
                             _ => self.static_addr_of(init, alloc.align, None),
@@ -300,7 +299,7 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
             let llval = self.const_usize(alloc.align.bytes());
             unsafe { llvm::LLVMConstIntToPtr(llval, llty) }
         } else {
-            let init = const_alloc_to_llvm(self, alloc, address_space);
+            let init = const_alloc_to_llvm(self, alloc);
             let base_addr = self.static_addr_of(init, alloc.align, None);
 
             let llval = unsafe {

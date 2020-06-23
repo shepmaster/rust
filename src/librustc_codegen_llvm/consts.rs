@@ -13,7 +13,7 @@ use rustc_hir::def_id::DefId;
 use rustc_hir::Node;
 use rustc_middle::middle::codegen_fn_attrs::{CodegenFnAttrFlags, CodegenFnAttrs};
 use rustc_middle::mir::interpret::{
-    read_target_uint, Allocation, ConstValue, ErrorHandled, Pointer,
+    read_target_uint, Allocation, ConstValue, ErrorHandled, GlobalAlloc, Pointer,
 };
 use rustc_middle::mir::mono::MonoItem;
 use rustc_middle::ty::{self, Instance, Ty};
@@ -24,11 +24,7 @@ use rustc_target::abi::{AddressSpace, Align, HasDataLayout, LayoutOf, Primitive,
 
 use std::ffi::CStr;
 
-pub fn const_alloc_to_llvm(
-    cx: &CodegenCx<'ll, '_>,
-    alloc: &Allocation,
-    address_space: AddressSpace,
-) -> &'ll Value {
+pub fn const_alloc_to_llvm(cx: &CodegenCx<'ll, '_>, alloc: &Allocation) -> &'ll Value {
     let mut llvals = Vec::with_capacity(alloc.relocations().len() + 1);
     let dl = cx.data_layout();
     let pointer_size = dl.pointer_size.bytes() as usize;
@@ -57,6 +53,12 @@ pub fn const_alloc_to_llvm(
         )
         .expect("const_alloc_to_llvm: could not read relocation pointer")
             as u64;
+
+        let address_space = match cx.tcx.global_alloc(alloc_id) {
+            GlobalAlloc::Function(..) => cx.data_layout().instruction_address_space,
+            GlobalAlloc::Static(..) | GlobalAlloc::Memory(..) => AddressSpace::DATA,
+        };
+
         llvals.push(cx.scalar_to_backend(
             Pointer::new(alloc_id, Size::from_bytes(ptr_offset)).into(),
             &Scalar { value: Primitive::Pointer, valid_range: 0..=!0 },
@@ -83,17 +85,12 @@ pub fn codegen_static_initializer(
     cx: &CodegenCx<'ll, 'tcx>,
     def_id: DefId,
 ) -> Result<(&'ll Value, &'tcx Allocation), ErrorHandled> {
-    let address_space = if cx.tcx.type_of(def_id).is_fn() {
-        cx.data_layout().instruction_address_space
-    } else {
-        AddressSpace::DATA
-    };
-
     let alloc = match cx.tcx.const_eval_poly(def_id)? {
         ConstValue::ByRef { alloc, offset } if offset.bytes() == 0 => alloc,
         val => bug!("static const eval returned {:#?}", val),
     };
-    Ok((const_alloc_to_llvm(cx, alloc, address_space), alloc))
+
+    Ok((const_alloc_to_llvm(cx, alloc), alloc))
 }
 
 fn set_global_alignment(cx: &CodegenCx<'ll, '_>, gv: &'ll Value, mut align: Align) {
