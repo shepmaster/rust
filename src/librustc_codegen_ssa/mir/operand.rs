@@ -460,8 +460,14 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     // this code is unreachable.
                     let ty = self.monomorphize(&constant.literal.ty);
                     let layout = bx.cx().layout_of(ty);
+                    let backend_type = bx.cx().backend_type(layout);
                     bx.load_operand(PlaceRef::new_sized(
-                        bx.cx().const_undef(bx.cx().type_ptr_to(bx.cx().backend_type(layout))),
+                        bx.cx().const_undef(
+                            bx.cx().type_ptr_to(
+                                backend_type,
+                                bx.cx().default_address_space_of_type(ty),
+                            ),
+                        ),
                         layout,
                     ))
                 })

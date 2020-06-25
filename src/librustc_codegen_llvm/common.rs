@@ -16,7 +16,7 @@ use rustc_middle::bug;
 use rustc_middle::mir::interpret::{Allocation, GlobalAlloc, Scalar};
 use rustc_middle::ty::layout::TyAndLayout;
 use rustc_span::symbol::Symbol;
-use rustc_target::abi::{self, HasDataLayout, LayoutOf, Pointer, Size};
+use rustc_target::abi::{self, AddressSpace, HasDataLayout, LayoutOf, Pointer, Size};
 
 use libc::{c_char, c_uint};
 use log::debug;
@@ -206,7 +206,10 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         let len = s.as_str().len();
         let cs = consts::ptrcast(
             self.const_cstr(s, false),
-            self.type_ptr_to(self.layout_of(self.tcx.types.str_).llvm_type(self)),
+            self.type_ptr_to(
+                self.layout_of(self.tcx.types.str_).llvm_type(self),
+                AddressSpace::DATA,
+            ),
         );
         (cs, self.const_usize(len as u64))
     }
@@ -265,7 +268,10 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
                 };
                 let llval = unsafe {
                     llvm::LLVMConstInBoundsGEP(
-                        self.const_bitcast(base_addr, self.type_i8p()),
+                        self.const_bitcast(
+                            base_addr,
+                            self.type_i8p(self.address_space_of_value(base_addr)),
+                        ),
                         &self.const_usize(ptr.offset.bytes()),
                         1,
                     )
@@ -286,7 +292,9 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
         offset: Size,
     ) -> PlaceRef<'tcx, &'ll Value> {
         assert_eq!(alloc.align, layout.align.abi);
-        let llty = self.type_ptr_to(layout.llvm_type(self));
+        let backend_type = layout.llvm_type(self);
+        let address_space = self.default_address_space_of_type(layout.ty);
+        let llty = self.type_ptr_to(backend_type, address_space);
         let llval = if layout.size == Size::ZERO {
             let llval = self.const_usize(alloc.align.bytes());
             unsafe { llvm::LLVMConstIntToPtr(llval, llty) }
@@ -296,7 +304,10 @@ impl ConstMethods<'tcx> for CodegenCx<'ll, 'tcx> {
 
             let llval = unsafe {
                 llvm::LLVMConstInBoundsGEP(
-                    self.const_bitcast(base_addr, self.type_i8p()),
+                    self.const_bitcast(
+                        base_addr,
+                        self.type_i8p(self.address_space_of_value(base_addr)),
+                    ),
                     &self.const_usize(offset.bytes()),
                     1,
                 )

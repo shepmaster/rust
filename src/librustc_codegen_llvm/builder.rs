@@ -719,14 +719,17 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
         if flags.contains(MemFlags::NONTEMPORAL) {
             // HACK(nox): This is inefficient but there is no nontemporal memcpy.
             let val = self.load(src, src_align);
-            let ptr = self.pointercast(dst, self.type_ptr_to(self.val_ty(val)));
+            let ptr = self.pointercast(
+                dst,
+                self.type_ptr_to(self.val_ty(val), self.cx.address_space_of_value(dst)),
+            );
             self.store_with_flags(val, ptr, dst_align, flags);
             return;
         }
         let size = self.intcast(size, self.type_isize(), false);
         let is_volatile = flags.contains(MemFlags::VOLATILE);
-        let dst = self.pointercast(dst, self.type_i8p());
-        let src = self.pointercast(src, self.type_i8p());
+        let dst = self.pointercast(dst, self.type_i8p(self.cx.address_space_of_value(dst)));
+        let src = self.pointercast(src, self.type_i8p(self.cx.address_space_of_value(src)));
         unsafe {
             llvm::LLVMRustBuildMemCpy(
                 self.llbuilder,
@@ -752,14 +755,17 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
         if flags.contains(MemFlags::NONTEMPORAL) {
             // HACK(nox): This is inefficient but there is no nontemporal memmove.
             let val = self.load(src, src_align);
-            let ptr = self.pointercast(dst, self.type_ptr_to(self.val_ty(val)));
+            let ptr = self.pointercast(
+                dst,
+                self.type_ptr_to(self.val_ty(val), self.cx.address_space_of_value(dst)),
+            );
             self.store_with_flags(val, ptr, dst_align, flags);
             return;
         }
         let size = self.intcast(size, self.type_isize(), false);
         let is_volatile = flags.contains(MemFlags::VOLATILE);
-        let dst = self.pointercast(dst, self.type_i8p());
-        let src = self.pointercast(src, self.type_i8p());
+        let dst = self.pointercast(dst, self.type_i8p(self.cx.address_space_of_value(dst)));
+        let src = self.pointercast(src, self.type_i8p(self.cx.address_space_of_value(src)));
         unsafe {
             llvm::LLVMRustBuildMemMove(
                 self.llbuilder,
@@ -782,7 +788,7 @@ impl BuilderMethods<'a, 'tcx> for Builder<'a, 'll, 'tcx> {
         flags: MemFlags,
     ) {
         let is_volatile = flags.contains(MemFlags::VOLATILE);
-        let ptr = self.pointercast(ptr, self.type_i8p());
+        let ptr = self.pointercast(ptr, self.type_i8p(self.cx.address_space_of_value(ptr)));
         unsafe {
             llvm::LLVMRustBuildMemSet(
                 self.llbuilder,
@@ -1191,7 +1197,7 @@ impl Builder<'a, 'll, 'tcx> {
     fn check_store(&mut self, val: &'ll Value, ptr: &'ll Value) -> &'ll Value {
         let dest_ptr_ty = self.cx.val_ty(ptr);
         let stored_ty = self.cx.val_ty(val);
-        let stored_ptr_ty = self.cx.type_ptr_to(stored_ty);
+        let stored_ptr_ty = self.cx.type_ptr_to(stored_ty, self.cx.address_space_of_value(ptr));
 
         assert_eq!(self.cx.type_kind(dest_ptr_ty), TypeKind::Pointer);
 
@@ -1275,7 +1281,7 @@ impl Builder<'a, 'll, 'tcx> {
 
         let lifetime_intrinsic = self.cx.get_intrinsic(intrinsic);
 
-        let ptr = self.pointercast(ptr, self.cx.type_i8p());
+        let ptr = self.pointercast(ptr, self.cx.type_i8p(self.cx.address_space_of_value(ptr)));
         self.call(lifetime_intrinsic, &[self.cx.const_u64(size), ptr], None);
     }
 

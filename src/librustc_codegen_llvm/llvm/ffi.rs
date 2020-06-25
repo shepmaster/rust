@@ -1920,6 +1920,11 @@ extern "C" {
     pub fn LLVMRustDIBuilderCreateOpDeref() -> i64;
     pub fn LLVMRustDIBuilderCreateOpPlusUconst() -> i64;
 
+    /// Returns `-1` if the value is not a pointer, otherwise returns the actual address space.
+    pub fn LLVMRustGetPointerTypeAddressSpace(ty: &Type) -> i64;
+    /// Returns `-1` if the value is not a pointer, otherwise returns the actual address space.
+    pub fn LLVMRustGetPointerAddressSpace(val: &Value) -> i64;
+
     #[allow(improper_ctypes)]
     pub fn LLVMRustWriteTypeToString(Type: &Type, s: &RustString);
     #[allow(improper_ctypes)]

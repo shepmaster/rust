@@ -48,7 +48,7 @@ use rustc_session::utils::NativeLibKind;
 use rustc_session::Session;
 use rustc_span::Span;
 use rustc_symbol_mangling::test as symbol_names_test;
-use rustc_target::abi::{Abi, Align, LayoutOf, Scalar, VariantIdx};
+use rustc_target::abi::{Abi, AddressSpace, Align, LayoutOf, Scalar, VariantIdx};
 
 use std::cmp;
 use std::ops::{Deref, DerefMut};
@@ -186,7 +186,10 @@ pub fn unsize_thin_ptr<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
         (&ty::Ref(_, a, _), &ty::Ref(_, b, _) | &ty::RawPtr(ty::TypeAndMut { ty: b, .. }))
         | (&ty::RawPtr(ty::TypeAndMut { ty: a, .. }), &ty::RawPtr(ty::TypeAndMut { ty: b, .. })) => {
             assert!(bx.cx().type_is_sized(a));
-            let ptr_ty = bx.cx().type_ptr_to(bx.cx().backend_type(bx.cx().layout_of(b)));
+            let ptr_ty = bx.cx().type_ptr_to(
+                bx.cx().backend_type(bx.cx().layout_of(b)),
+                bx.cx().address_space_of_value(src),
+            );
             (bx.pointercast(src, ptr_ty), unsized_info(bx.cx(), a, b, None))
         }
         (&ty::Adt(def_a, _), &ty::Adt(def_b, _)) => {
@@ -423,7 +426,13 @@ pub fn maybe_create_entry_wrapper<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
         // The entry function is either `int main(void)` or `int main(int argc, char **argv)`,
         // depending on whether the target needs `argc` and `argv` to be passed in.
         let llfty = if cx.sess().target.target.options.main_needs_argc_argv {
-            cx.type_func(&[cx.type_int(), cx.type_ptr_to(cx.type_i8p())], cx.type_int())
+            cx.type_func(
+                &[
+                    cx.type_int(),
+                    cx.type_ptr_to(cx.type_i8p(AddressSpace::DATA), AddressSpace::DATA),
+                ],
+                cx.type_int(),
+            )
         } else {
             cx.type_func(&[], cx.type_int())
         };
@@ -471,7 +480,17 @@ pub fn maybe_create_entry_wrapper<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
             );
             (
                 start_fn,
-                vec![bx.pointercast(rust_main, cx.type_ptr_to(cx.type_i8p())), arg_argc, arg_argv],
+                vec![
+                    bx.pointercast(
+                        rust_main,
+                        cx.type_ptr_to(
+                            cx.type_i8p(cx.address_space_of_value(rust_main)),
+                            cx.address_space_of_value(rust_main),
+                        ),
+                    ),
+                    arg_argc,
+                    arg_argv,
+                ],
             )
         } else {
             debug!("using user-defined start fn");
@@ -501,7 +520,8 @@ fn get_argc_argv<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
     } else {
         // The Rust start function doesn't need `argc` and `argv`, so just pass zeros.
         let arg_argc = bx.const_int(cx.type_int(), 0);
-        let arg_argv = bx.const_null(cx.type_ptr_to(cx.type_i8p()));
+        let arg_argv =
+            bx.const_null(cx.type_ptr_to(cx.type_i8p(AddressSpace::DATA), AddressSpace::DATA));
         (arg_argc, arg_argv)
     }
 }
