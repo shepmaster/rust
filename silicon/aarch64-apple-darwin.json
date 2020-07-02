@@ -1,0 +1,56 @@
+{
+  "-- comment --": "needed?",
+  "abi-blacklist": [
+    "stdcall",
+    "fastcall",
+    "vectorcall",
+    "thiscall",
+    "win64",
+    "sysv64"
+  ],
+  "abi-return-struct-as-int": true,
+  "arch": "aarch64",
+  "archive-format": "darwin",
+  "--comment-- cpu": "cyclone",
+  "cpu": "aarch64",
+  "data-layout": "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
+  "dll-suffix": ".dylib",
+  "dynamic-linking": true,
+  "eliminate-frame-pointer": false,
+  "emit-debug-gdb-scripts": false,
+  "env": "",
+  "executables": true,
+  "features": "+neon,+fp-armv8,+cyclone",
+  "function-sections": false,
+  "has-elf-tls": true,
+  "has-rpath": true,
+  "is-like-osx": true,
+  "link-env": [
+    "ZERO_AR_DATE=1"
+  ],
+  "link-env-remove": [
+    "IPHONEOS_DEPLOYMENT_TARGET"
+  ],
+  "linker-flavor": "gcc",
+  "llvm-target": "aarch64-apple-macosx11.5.0",
+  "max-atomic-width": 128,
+  "os": "macos",
+  "pre-link-args": {
+    "gcc": [
+      "-arch",
+      "arm64",
+      "-isysroot",
+      "/Users/shep/Downloads/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk",
+      "-Wl,-syslibroot",
+      "/Users/shep/Downloads/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk",
+      "--verbose"
+    ]
+  },
+  "stack-probes": true,
+  "target-c-int-width": "32",
+  "target-endian": "little",
+  "target-family": "unix",
+  "target-mcount": "\u0001mcount",
+  "target-pointer-width": "64",
+  "vendor": "apple"
+}
