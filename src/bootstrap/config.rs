@@ -403,7 +403,7 @@ impl Config {
         // set by bootstrap.py
         config.build = INTERNER.intern_str(&env::var("BUILD").expect("'BUILD' to be set"));
         config.src = Config::path_from_python("SRC");
-        config.out = Config::path_from_python("BUILD_DIR");
+        config.out = dbg!(Config::path_from_python("BUILD_DIR"));
 
         config.initial_rustc = Config::path_from_python("RUSTC");
         config.initial_cargo = Config::path_from_python("CARGO");

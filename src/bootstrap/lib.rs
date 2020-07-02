@@ -574,7 +574,7 @@ impl Build {
     /// running a particular compiler, whether or not we're building the
     /// standard library, and targeting the specified architecture.
     fn cargo_out(&self, compiler: Compiler, mode: Mode, target: Interned<String>) -> PathBuf {
-        self.stage_out(compiler, mode).join(&*target).join(self.cargo_dir())
+        self.stage_out(compiler, mode).join(crate::hackit(&*target)).join(self.cargo_dir())
     }
 
     /// Root output directory for LLVM compiled for `target`
@@ -582,7 +582,7 @@ impl Build {
     /// Note that if LLVM is configured externally then the directory returned
     /// will likely be empty.
     fn llvm_out(&self, target: Interned<String>) -> PathBuf {
-        self.out.join(&*target).join("llvm")
+        dbg!(&self.out).join(crate::hackit(&*target)).join("llvm")
     }
 
     fn lld_out(&self, target: Interned<String>) -> PathBuf {
@@ -1347,4 +1347,13 @@ fn envify(s: &str) -> String {
         })
         .flat_map(|c| c.to_uppercase())
         .collect()
+}
+
+fn hackit(target: &str) -> &str {
+    let tgt_path = Path::new(target);
+    if tgt_path.exists() {
+        tgt_path.file_stem().expect("No good").to_str().expect("not utf8")
+    } else {
+        target
+    }
 }

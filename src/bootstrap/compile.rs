@@ -709,9 +709,9 @@ impl Step for Sysroot {
     fn run(self, builder: &Builder<'_>) -> Interned<PathBuf> {
         let compiler = self.compiler;
         let sysroot = if compiler.stage == 0 {
-            builder.out.join(&compiler.host).join("stage0-sysroot")
+            builder.out.join(crate::hackit(&compiler.host)).join("stage0-sysroot")
         } else {
-            builder.out.join(&compiler.host).join(format!("stage{}", compiler.stage))
+            builder.out.join(crate::hackit(&compiler.host)).join(format!("stage{}", compiler.stage))
         };
         let _ = fs::remove_dir_all(&sysroot);
         t!(fs::create_dir_all(&sysroot));
@@ -886,7 +886,7 @@ pub fn run_cargo(
     if builder.config.dry_run {
         return Vec::new();
     }
-
+dbg!(stamp);
     // `target_root_dir` looks like $dir/$target/release
     let target_root_dir = stamp.parent().unwrap();
     // `target_deps_dir` looks like $dir/$target/release/deps
@@ -970,7 +970,7 @@ pub fn run_cargo(
     // Ok now we need to actually find all the files listed in `toplevel`. We've
     // got a list of prefix/extensions and we basically just need to find the
     // most recent file in the `deps` folder corresponding to each one.
-    let contents = t!(target_deps_dir.read_dir())
+    let contents = t!(dbg!(&target_deps_dir).read_dir())
         .map(|e| t!(e))
         .map(|e| (e.path(), e.file_name().into_string().unwrap(), t!(e.metadata())))
         .collect::<Vec<_>>();

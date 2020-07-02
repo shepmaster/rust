@@ -625,14 +625,17 @@ impl<'a> Builder<'a> {
             }
 
             fn run(self, builder: &Builder<'_>) -> Interned<PathBuf> {
+                let target = crate::hackit(&self.target);
+
                 let lib = builder.sysroot_libdir_relative(self.compiler);
-                let sysroot = builder
-                    .sysroot(self.compiler)
+                let sysroot = dbg!(dbg!(builder
+                    .sysroot(self.compiler))
                     .join(lib)
-                    .join("rustlib")
-                    .join(self.target)
+                    .join("rustlib"))
+                    .join(target)
                     .join("lib");
                 let _ = fs::remove_dir_all(&sysroot);
+                eprintln!("{}", sysroot.display());
                 t!(fs::create_dir_all(&sysroot));
                 INTERNER.intern_path(sysroot)
             }
