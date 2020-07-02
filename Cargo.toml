@@ -28,6 +28,7 @@ members = [
   "src/tools/expand-yaml-anchors",
 ]
 exclude = [
+  "silicon",
   "build",
   # HACK(eddyb) This hardcodes the fact that our CI uses `/checkout/obj`.
   "obj",
@@ -68,6 +69,7 @@ cargo = { path = "src/tools/cargo" }
 # that we're shipping as well (to ensure that the rustfmt in RLS and the
 # `rustfmt` executable are the same exact version).
 rustfmt-nightly = { path = "src/tools/rustfmt" }
+libc = { path = "silicon/libc", default-features = false, features = ['rustc-dep-of-std'] }
 
 # See comments in `src/tools/rustc-workspace-hack/README.md` for what's going on
 # here
