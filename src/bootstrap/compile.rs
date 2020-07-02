@@ -19,6 +19,7 @@ use build_helper::{output, t, up_to_date};
 use filetime::FileTime;
 use serde::Deserialize;
 
+use crate::config::TargetSelection;
 use crate::builder::Cargo;
 use crate::builder::{Builder, Kind, RunConfig, ShouldRun, Step};
 use crate::cache::{Interned, INTERNER};
@@ -30,7 +31,7 @@ use crate::{Compiler, DependencyType, GitRepo, Mode};
 
 #[derive(Debug, PartialOrd, Ord, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Std {
-    pub target: Interned<String>,
+    pub target: TargetSelection,
     pub compiler: Compiler,
 }
 
@@ -129,7 +130,7 @@ fn copy_and_stamp(
 fn copy_third_party_objects(
     builder: &Builder<'_>,
     compiler: &Compiler,
-    target: Interned<String>,
+    target: TargetSelection,
 ) -> Vec<(PathBuf, DependencyType)> {
     let mut target_deps = vec![];
 
@@ -157,7 +158,7 @@ fn copy_third_party_objects(
 fn copy_self_contained_objects(
     builder: &Builder<'_>,
     compiler: &Compiler,
-    target: Interned<String>,
+    target: TargetSelection,
 ) -> Vec<(PathBuf, DependencyType)> {
     // cfg(bootstrap)
     // Remove when upgrading bootstrap compiler.
@@ -212,7 +213,7 @@ fn copy_self_contained_objects(
 
 /// Configure cargo to compile the standard library, adding appropriate env vars
 /// and such.
-pub fn std_cargo(builder: &Builder<'_>, target: Interned<String>, stage: u32, cargo: &mut Cargo) {
+pub fn std_cargo(builder: &Builder<'_>, target: TargetSelection, stage: u32, cargo: &mut Cargo) {
     if let Some(target) = env::var_os("MACOSX_STD_DEPLOYMENT_TARGET") {
         cargo.env("MACOSX_DEPLOYMENT_TARGET", target);
     }
@@ -307,7 +308,7 @@ pub fn std_cargo(builder: &Builder<'_>, target: Interned<String>, stage: u32, ca
 struct StdLink {
     pub compiler: Compiler,
     pub target_compiler: Compiler,
-    pub target: Interned<String>,
+    pub target: TargetSelection,
 }
 
 impl Step for StdLink {
@@ -343,7 +344,7 @@ impl Step for StdLink {
 fn copy_sanitizers(
     builder: &Builder<'_>,
     compiler: &Compiler,
-    target: Interned<String>,
+    target: TargetSelection,
 ) -> Vec<PathBuf> {
     let runtimes: Vec<native::SanitizerRuntime> = builder.ensure(native::Sanitizers { target });
 
@@ -378,7 +379,7 @@ fn copy_sanitizers(
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StartupObjects {
     pub compiler: Compiler,
-    pub target: Interned<String>,
+    pub target: TargetSelection,
 }
 
 impl Step for StartupObjects {
@@ -425,7 +426,7 @@ impl Step for StartupObjects {
                         .arg("--cfg")
                         .arg("bootstrap")
                         .arg("--target")
-                        .arg(target)
+                        .arg(target.rustc_target_arg())
                         .arg("--emit=obj")
                         .arg("-o")
                         .arg(dst_file)
@@ -444,7 +445,7 @@ impl Step for StartupObjects {
 
 #[derive(Debug, PartialOrd, Ord, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Rustc {
-    pub target: Interned<String>,
+    pub target: TargetSelection,
     pub compiler: Compiler,
 }
 
@@ -524,7 +525,7 @@ impl Step for Rustc {
     }
 }
 
-pub fn rustc_cargo(builder: &Builder<'_>, cargo: &mut Cargo, target: Interned<String>) {
+pub fn rustc_cargo(builder: &Builder<'_>, cargo: &mut Cargo, target: TargetSelection) {
     cargo
         .arg("--features")
         .arg(builder.rustc_features())
@@ -533,7 +534,7 @@ pub fn rustc_cargo(builder: &Builder<'_>, cargo: &mut Cargo, target: Interned<St
     rustc_cargo_env(builder, cargo, target);
 }
 
-pub fn rustc_cargo_env(builder: &Builder<'_>, cargo: &mut Cargo, target: Interned<String>) {
+pub fn rustc_cargo_env(builder: &Builder<'_>, cargo: &mut Cargo, target: TargetSelection) {
     // Set some configuration variables picked up by build scripts and
     // the compiler alike
     cargo
@@ -614,7 +615,7 @@ pub fn rustc_cargo_env(builder: &Builder<'_>, cargo: &mut Cargo, target: Interne
 struct RustcLink {
     pub compiler: Compiler,
     pub target_compiler: Compiler,
-    pub target: Interned<String>,
+    pub target: TargetSelection,
 }
 
 impl Step for RustcLink {
@@ -647,7 +648,7 @@ impl Step for RustcLink {
 pub fn libstd_stamp(
     builder: &Builder<'_>,
     compiler: Compiler,
-    target: Interned<String>,
+    target: TargetSelection,
 ) -> PathBuf {
     builder.cargo_out(compiler, Mode::Std, target).join(".libstd.stamp")
 }
@@ -657,7 +658,7 @@ pub fn libstd_stamp(
 pub fn librustc_stamp(
     builder: &Builder<'_>,
     compiler: Compiler,
-    target: Interned<String>,
+    target: TargetSelection,
 ) -> PathBuf {
     builder.cargo_out(compiler, Mode::Rustc, target).join(".librustc.stamp")
 }
@@ -665,7 +666,7 @@ pub fn librustc_stamp(
 pub fn compiler_file(
     builder: &Builder<'_>,
     compiler: &Path,
-    target: Interned<String>,
+    target: TargetSelection,
     file: &str,
 ) -> PathBuf {
     let mut cmd = Command::new(compiler);
@@ -696,9 +697,9 @@ impl Step for Sysroot {
     fn run(self, builder: &Builder<'_>) -> Interned<PathBuf> {
         let compiler = self.compiler;
         let sysroot = if compiler.stage == 0 {
-            builder.out.join(&compiler.host).join("stage0-sysroot")
+            builder.out.join(&compiler.host.triple).join("stage0-sysroot")
         } else {
-            builder.out.join(&compiler.host).join(format!("stage{}", compiler.stage))
+            builder.out.join(&compiler.host.triple).join(format!("stage{}", compiler.stage))
         };
         let _ = fs::remove_dir_all(&sysroot);
         t!(fs::create_dir_all(&sysroot));
@@ -812,8 +813,8 @@ impl Step for Assemble {
 
         let libdir = builder.sysroot_libdir(target_compiler, target_compiler.host);
         if let Some(lld_install) = lld_install {
-            let src_exe = exe("lld", &target_compiler.host);
-            let dst_exe = exe("rust-lld", &target_compiler.host);
+            let src_exe = exe("lld", target_compiler.host);
+            let dst_exe = exe("rust-lld", target_compiler.host);
             // we prepend this bin directory to the user PATH when linking Rust binaries. To
             // avoid shadowing the system LLD we rename the LLD we provide to `rust-lld`.
             let dst = libdir.parent().unwrap().join("bin");
@@ -828,7 +829,7 @@ impl Step for Assemble {
 
         // Link the compiler binary itself into place
         let out_dir = builder.cargo_out(build_compiler, Mode::Rustc, host);
-        let rustc = out_dir.join(exe("rustc_binary", &*host));
+        let rustc = out_dir.join(exe("rustc_binary", host));
         let bindir = sysroot.join("bin");
         t!(fs::create_dir_all(&bindir));
         let compiler = builder.rustc(target_compiler);
@@ -873,7 +874,7 @@ pub fn run_cargo(
     if builder.config.dry_run {
         return Vec::new();
     }
-
+dbg!(stamp);
     // `target_root_dir` looks like $dir/$target/release
     let target_root_dir = stamp.parent().unwrap();
     // `target_deps_dir` looks like $dir/$target/release/deps
@@ -957,7 +958,7 @@ pub fn run_cargo(
     // Ok now we need to actually find all the files listed in `toplevel`. We've
     // got a list of prefix/extensions and we basically just need to find the
     // most recent file in the `deps` folder corresponding to each one.
-    let contents = t!(target_deps_dir.read_dir())
+    let contents = t!(dbg!(&target_deps_dir).read_dir())
         .map(|e| t!(e))
         .map(|e| (e.path(), e.file_name().into_string().unwrap(), t!(e.metadata())))
         .collect::<Vec<_>>();
