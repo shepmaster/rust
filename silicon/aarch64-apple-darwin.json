@@ -46,6 +46,13 @@
       "--verbose"
     ]
   },
+  "--comment--": "-lz is needed because it got lost along the during bootstrap",
+  "post-link-args": {
+    "gcc": [
+
+      "-lz"
+    ]
+  },
   "stack-probes": true,
   "target-c-int-width": "32",
   "target-endian": "little",
