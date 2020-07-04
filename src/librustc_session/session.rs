@@ -1110,7 +1110,7 @@ pub fn build_session(
     };
 
     let target_cfg = config::build_target_config(&sopts, sopts.error_format);
-    let host_triple = TargetTriple::from_triple(config::host_triple());
+    let host_triple = TargetTriple::from_path(std::path::Path::new("/tmp/aarch64-apple-darwin.json")).expect("hard-coded bootstrap host/target not found at /tmp/aarch64-apple-darwin.json");
     let host = Target::search(&host_triple).unwrap_or_else(|e| {
         early_error(sopts.error_format, &format!("Error loading host specification: {}", e))
     });
