@@ -1,4 +1,14 @@
-Clone libc into `silicon/lib`, checkout the silicon branch
+# Setup
+
+- Clone [this fork of rust][fork], checkout the "silicon-bootstrap" branch.
+
+- Clone [libc][] into `silicon/libc`, checkout the "silicon" branch
+
+- Clone [cc-rs][] into `silicon/cc-rs`, checkout the "silicon" branch.
+
+[fork]: https://github.com/shepmaster/rust
+[libc]: https://github.com/shepmaster/libc
+[cc-rs]: https://github.com/shepmaster/cc-rs
 
 # Build a compiler capable of cross-compiling to the DTK
 
@@ -7,6 +17,9 @@ to build an enhanced version that can.
 
 This section can be removed when an appropriate target specification
 is added to the standard Rust bootstrapping compiler.
+
+Theoretically, these steps can be done on the DTK itself, but that
+hasn't been tested yet.
 
 1. `cd silicon/bootstrap`
 
@@ -107,6 +120,8 @@ rustup default native
 ```
 
 # Build the compiler on the DTK
+
+Re-run the setup steps on the DTK, if you haven't already.
 
 cd `silicon/pure-native`
 
