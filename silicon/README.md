@@ -15,7 +15,7 @@ is added to the standard Rust bootstrapping compiler.
   CFLAGS_aarch64_apple_darwin='-arch arm64' \
   SDKROOT=/Users/shep/Downloads/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk \
   MACOSX_DEPLOYMENT_TARGET=11.5 \
-  ../../x.py build -i --stage 1 --warnings warn src/libstd
+  ../../x.py build src/libstd -i --stage 1 --warnings warn
   ```
 
   N.B. these environment variables *probably* aren't required, but
@@ -38,7 +38,7 @@ build a compiler native to the DTK.
   SDKROOT=/Users/shep/Downloads/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk \
   MACOSX_DEPLOYMENT_TARGET=11.5 \
   DESTDIR=/tmp/crossed \
-  ../../x.py install --stage 1 --host aarch64-apple-darwin --target aarch64-apple-darwin,x86_64-apple-darwin --warnings warn
+  ../../x.py install -i --stage 1 --host aarch64-apple-darwin --target aarch64-apple-darwin,x86_64-apple-darwin --warnings warn
   ```
 
 # Copy the cross-compiler to the DTK
@@ -102,6 +102,17 @@ Create a toolchain and make it the default:
 ```
 rustup toolchain link native ~/crossed/usr/local/
 rustup default native
+```
+
+# Build the compiler on the DTK
+
+cd `silicon/pure-native`
+
+```
+CFLAGS_x86_64_apple_darwin='-arch x86_64' \
+CFLAGS_aarch64_apple_darwin='-arch arm64' \
+DESTDIR=~/native-build \
+../../x.py install -i src/librustc src/libstd --stage 1 --host aarch64-apple-darwin --target aarch64-apple-darwin,x86_64-apple-darwin --warnings warn
 ```
 
 # Miscellaneous notes
