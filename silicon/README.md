@@ -55,9 +55,14 @@ On the DTK, you can now use native Rust:
 
 ```
 % echo 'fn main() { println!("Hello, DTK!") }' > hello.rs
-% ./stage1/bin/rustc hello.rs
+
+% ~/crossed/usr/local/bin/rustc hello.rs
+
 % ./hello
 Hello, DTK!
+
+% file hello
+hello: Mach-O 64-bit executable arm64
 ```
 
 # Installing rustup
