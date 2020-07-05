@@ -1,3 +1,4 @@
+/cc-rs
+/libc
 Makefile
 build
-/libc
