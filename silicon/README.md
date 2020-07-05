@@ -37,7 +37,8 @@ build a compiler native to the DTK.
   CFLAGS_aarch64_apple_darwin='-arch arm64' \
   SDKROOT=/Users/shep/Downloads/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk \
   MACOSX_DEPLOYMENT_TARGET=11.5 \
-  ../../x.py build -i --stage 1 --warnings warn src/libstd
+  DESTDIR=/tmp/crossed \
+  ../../x.py install --stage 1 --host aarch64-apple-darwin --target aarch64-apple-darwin,x86_64-apple-darwin --warnings warn
   ```
 
 # Copy the cross-compiler to the DTK
@@ -45,15 +46,7 @@ build a compiler native to the DTK.
 `rsync` is a good choice, as you'll probably need to iterate a few times!
 
 ```
-rsync -avz silicon/cross/build/aarch64-apple-darwin/stage1 dtk:
-```
-
-One strange thing is that the the standard libary files aren't in the
-right place yet. You can copy them from the sibling x86_64 build
-though:
-
-```
-rsync -avz build/x86_64-apple-darwin/stage1/lib/rustlib/aarch64-apple-darwin/ dtk:stage1/lib/rustlib/aarch64-apple-darwin/
+rsync -avz /tmp/crossed/ dtk:crossed/
 ```
 
 # Build a native binary
@@ -65,6 +58,45 @@ On the DTK, you can now use native Rust:
 % ./stage1/bin/rustc hello.rs
 % ./hello
 Hello, DTK!
+```
+
+# Installing rustup
+
+Rustup doesn't know that `x86_64` binaries can run on `aarch64`, so we
+have to hack the install script so it thinks that the machine is
+`x86_64`:
+
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > /tmp/rustup.rs
+```
+
+Apply this patch:
+
+```diff
+--- /tmp/rustup.rs  2020-07-05 07:49:10.000000000 -0700
++++ /tmp/rustup-hacked.rs   2020-07-04 17:27:08.000000000 -0700
+@@ -188,6 +188,8 @@
+         fi
+     fi
+
++    _cputype=x86_64
++
+     case "$_ostype" in
+
+         Android)
+```
+
+Install rustup
+
+```
+bash /tmp/rustup.sh --default-toolchain none
+```
+
+Create a toolchain and make it the default:
+
+```
+rustup toolchain link native ~/crossed/usr/local/
+rustup default native
 ```
 
 # Miscellaneous notes
@@ -88,3 +120,14 @@ Hello, DTK!
   iteration times. This can easily take up **30 GiB** of
   space. Building can take several hours on an 2.9 GHz 6-Core Intel
   Core i9.
+
+# Troubleshooting
+
+- Failure while running `x.py`? Add `-vvvvvvv`.
+
+- "archive member 'something.o' with length xxxx is not mach-o or llvm bitcode file 'some-tmp-path/libbacktrace_sys-e02ed1fd10e8b80d.rlib' for architecture arm64"?
+  - Find the rlib: `find build -name 'libbacktrace_sys*'`
+  - Remove it: `rm build/aarch64-apple-darwin/stage0-std/aarch64-apple-darwin/release/deps/libbacktrace_sys-e02ed1fd10e8b80d.r{meta,lib}`
+  - Look at the objects it created in `build/aarch64-apple-darwin/stage0-std/aarch64-apple-darwin/release/build/backtrace-sys-fec595dd32504c90/`
+  - Delete those too: `rm -r build/aarch64-apple-darwin/stage0-std/aarch64-apple-darwin/release/build/backtrace-sys-fec595dd32504c90`
+  - Rebuild with verbose
