@@ -19,9 +19,6 @@ that can.
 This section can be simplified when an appropriate target
 specification is added to the standard Rust bootstrapping compiler.
 
-Theoretically, these steps can be done on the DTK itself, but that
-hasn't been tested yet.
-
 1. `cd silicon/cross`
 
 1. Configure the compiler
@@ -30,23 +27,29 @@ hasn't been tested yet.
     ../../configure
     ```
 
+1. The buildsystem will, by default, try to fetch a Rust binary for the current host.
+It doesn't know that `x86_64` binaries will run on `aarch64`, so we need to tell it
+what build triple to use. Open the generated `cargo.toml file, and change this line:
+
+    ```
+    #build = "x86_64-unknown-linux-gnu"
+    ```
+
+To this:
+
+    ```
+    build = "x86_64-apple-darwin"
+    ```
+
 1. Cross-compile the compiler
 
     ```
     SDKROOT=$(xcrun -sdk macosx11.0 --show-sdk-path) \
     MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.0 --show-sdk-platform-version) \
-    DESTDIR=/tmp/crossed \
+    DESTDIR=~/crossed \
     ../../x.py install -i --stage 1 --host ../aarch64-apple-darwin.json --target aarch64-apple-darwin,x86_64-apple-darwin \
     src/librustc src/libstd
     ```
-
-# Copy the cross-compiler to the DTK
-
-`rsync` is a good choice, as you'll probably need to iterate a few times!
-
-```
-rsync -avz /tmp/crossed/ dtk:crossed/
-```
 
 # Build a native binary
 
@@ -105,11 +108,9 @@ have to hack the install script so it thinks that the machine is
     rustup default native
     ```
 
-# Build the compiler on the DTK
+# Build the compiler using this toolchain
 
-Re-run the setup steps on the DTK, if you haven't already.
-
-1. `cd silicon/pure-native`
+1. `cd ../pure-native`
 
 1. Get an x86_64 version of Cargo to use during bootstrapping
 
