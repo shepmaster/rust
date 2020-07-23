@@ -125,7 +125,7 @@ have to hack the install script so it thinks that the machine is
 1. Install rustup
 
     ```
-    bash /tmp/rustup.sh --default-toolchain none
+    bash /tmp/rustup.rs --default-toolchain none
     ```
 
 1. Create a toolchain and make it the default:
