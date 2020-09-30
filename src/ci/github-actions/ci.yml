@@ -462,7 +462,8 @@ jobs:
             <<: *job-macos-xl
 
           # This target only needs to support 11.0 and up as nothing else supports the hardware
-          - name: dist-aarch64-apple
+          - &aarch64-apple-darwin
+            name: dist-aarch64-apple
             env:
               SCRIPT: ./x.py dist --stage 2
               RUST_CONFIGURE_ARGS: >-
@@ -644,7 +645,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - *dist-x86_64-linux
+          - *aarch64-apple-darwin
 
   master:
     name: master
