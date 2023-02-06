@@ -47,6 +47,7 @@
 #![feature(inline_const)]
 #![feature(is_sorted)]
 #![feature(layout_for_ptr)]
+#![feature(parts)]
 #![feature(pattern)]
 #![feature(sort_internals)]
 #![feature(slice_take)]

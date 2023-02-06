@@ -794,6 +794,78 @@ fn test_array_chunks_mut_zip() {
     assert_eq!(v1, [13, 14, 19, 20, 4]);
 }
 
+
+#[test]
+fn test_parts() {
+    use std::collections::BTreeSet;
+
+    // Check our properties across a range of values
+    let all_items = [(); 100];
+    for item_count in 0..=100 {
+        let items = &all_items[..item_count];
+
+        // Go beyond the item count to ensure that a number of items
+        // spread over a larger set of parts works.
+        let max_requested_parts = items.len() * 2;
+
+        for requested_parts in 1..max_requested_parts {
+            let actual_parts = items.parts(requested_parts).count();
+            assert!(
+                actual_parts <= requested_parts,
+                "should never return more parts than requested",
+            );
+
+            let unique_chunk_lens = items
+                .parts(requested_parts)
+                .map(|c| c.len())
+                .collect::<BTreeSet<_>>();
+            assert!(
+                unique_chunk_lens.len() <= 2,
+                "non-degenerate cases should have exactly one chunk \
+                length (when evenly divisible) or two (when not evenly \
+                divisible)"
+            );
+
+            if !unique_chunk_lens.is_empty() {
+                let mut unique_values = unique_chunk_lens.into_iter();
+                let short_len = unique_values.next().unwrap();
+                if let Some(long_len) = unique_values.next() {
+                    assert_eq!(
+                        long_len,
+                        short_len + 1,
+                        "the two chunk sizes should differ by at most \
+                        one to evenly divide the work across the \
+                        parts",
+                    );
+                }
+            }
+        }
+    }
+}
+
+// These properties are **not** required by the contract of
+// `slice::parts`, but these tests let us be aware when they change.
+#[test]
+fn test_parts_current_implementation_details() {
+    assert_eq!(
+        1,
+        [1].parts(100).count(),
+        "an empty slice should not be returned",
+    );
+
+    assert_eq!(
+        Some(&[1, 2][..]),
+        [1, 2, 3].parts(2).next(),
+        "initial slices should be larger than the final slices (going forwards)",
+    );
+
+    assert_eq!(
+        Some(&[3][..]),
+        [1, 2, 3].parts(2).next_back(),
+        "initial slices should be smaller than the final slices (going backwards)",
+    );
+}
+
 #[test]
 fn test_array_windows_infer() {
     let v: &[i32] = &[0, 1, 0, 1];

@@ -63,6 +63,9 @@ pub use iter::{RChunks, RChunksExact, RChunksExactMut, RChunksMut};
 #[unstable(feature = "array_chunks", issue = "74985")]
 pub use iter::{ArrayChunks, ArrayChunksMut};
 
+#[unstable(feature = "parts", issue = "none")]
+pub use iter::Parts;
+
 #[unstable(feature = "array_windows", issue = "75027")]
 pub use iter::ArrayWindows;
 
@@ -1470,6 +1473,37 @@ impl<T> [T] {
     pub fn rchunks_exact_mut(&mut self, chunk_size: usize) -> RChunksExactMut<'_, T> {
         assert!(chunk_size != 0, "chunk size must be non-zero");
         RChunksExactMut::new(self, chunk_size)
+    }
+
+    /// Returns an iterator that divides the slice into a maximum of
+    /// `parts` chunks, starting at the beginning of the slice.
+    ///
+    /// The chunks are slices and do not overlap. If the slice cannot
+    /// be evenly divided into `n_parts` parts, some chunks will be
+    /// one element longer than others. It is not guaranteed which
+    /// chunks will be longer.
+    ///
+    /// See [`chunks`] for an iterator that returns chunks of a
+    /// specified length, instead of a specified number of chunks.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #![feature(parts)]
+    ///
+    /// let slice = ['l', 'o', 'r', 'e', 'm'];
+    /// let mut iter = slice.parts(2);
+    /// assert_eq!(iter.next().unwrap(), &['l', 'o', 'r']);
+    /// assert_eq!(iter.next().unwrap(), &['e', 'm']);
+    /// assert!(iter.next().is_none());
+    /// ```
+    ///
+    /// [`chunks`]: slice::chunks
+    #[unstable(feature = "parts", issue = "none")]
+    #[inline]
+    #[track_caller]
+    pub fn parts(&self, parts: usize) -> Parts<'_, T> {
+        Parts::new(self, parts)
     }
 
     /// Returns an iterator over the slice producing non-overlapping runs
