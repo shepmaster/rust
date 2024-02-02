@@ -317,7 +317,8 @@ fn register_builtins(store: &mut LintStore) {
         BARE_TRAIT_OBJECTS,
         UNUSED_EXTERN_CRATES,
         ELLIPSIS_INCLUSIVE_RANGE_PATTERNS,
-        ELIDED_LIFETIMES_IN_PATHS,
+        ELIDED_LIFETIMES_IN_PATHS_TIED,
+        ELIDED_LIFETIMES_IN_PATHS_UNTIED,
         EXPLICIT_OUTLIVES_REQUIREMENTS,
         // FIXME(#52665, #47816) not always applicable and not all
         // macros are ready for this yet.
@@ -337,9 +338,14 @@ fn register_builtins(store: &mut LintStore) {
 
     add_lint_group!("deprecated_safe", DEPRECATED_SAFE_2024);
 
+    add_lint_group!(
+        "elided_lifetimes_in_paths",
+        ELIDED_LIFETIMES_IN_PATHS_TIED,
+        ELIDED_LIFETIMES_IN_PATHS_UNTIED,
+    );
+
     // Register renamed and removed lints.
     store.register_renamed("single_use_lifetime", "single_use_lifetimes");
-    store.register_renamed("elided_lifetime_in_path", "elided_lifetimes_in_paths");
     store.register_renamed("bare_trait_object", "bare_trait_objects");
     store.register_renamed("unstable_name_collision", "unstable_name_collisions");
     store.register_renamed("unused_doc_comment", "unused_doc_comments");
@@ -353,6 +359,9 @@ fn register_builtins(store: &mut LintStore) {
     store.register_renamed("unused_tuple_struct_fields", "dead_code");
     store.register_renamed("static_mut_ref", "static_mut_refs");
     store.register_renamed("temporary_cstring_as_ptr", "dangling_pointers_from_temporaries");
+
+    // Register renamed lint groups
+    store.register_renamed_group("elided_lifetime_in_path", "elided_lifetimes_in_paths");
 
     // These were moved to tool lints, but rustc still sees them when compiling normally, before
     // tool lints are registered, so `check_tool_name_for_backwards_compat` doesn't work. Use
