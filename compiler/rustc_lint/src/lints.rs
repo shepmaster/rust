@@ -2731,7 +2731,7 @@ impl<G: EmissionGuarantee> LintDiagnostic<'_, G> for ElidedNamedLifetime {
 
 #[derive(LintDiagnostic)]
 #[diag(lint_hidden_lifetime_parameters)] // deliberately the same translation
-pub(crate) struct ElidedLifetimesInPathsTied {
+pub(crate) struct HiddenLifetimesInOutputPaths {
     #[subdiagnostic]
     pub expected: Vec<ExpectedLifetimeParameter>,
 
@@ -2739,12 +2739,12 @@ pub(crate) struct ElidedLifetimesInPathsTied {
     pub suggestions: Vec<IndicateAnonymousLifetime>,
 
     #[subdiagnostic]
-    pub elided_lifetime_source: Option<ElidedLifetimesInPathsTiedSource>,
+    pub elided_lifetime_source: Option<HiddenLifetimesInOutputPathsSource>,
 }
 
 #[derive(Subdiagnostic)]
-#[label(lint_hidden_lifetime_parameters_tied_source)]
-pub(crate) struct ElidedLifetimesInPathsTiedSource {
+#[label(lint_hidden_lifetime_parameters_source)]
+pub(crate) struct HiddenLifetimesInOutputPathsSource {
     #[primary_span]
     pub span: Span,
 }

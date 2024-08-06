@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use rustc_ast::util::unicode::TEXT_FLOW_CONTROL_CHARS;
 use rustc_errors::{
     Applicability, Diag, DiagArgValue, ExpectedLifetimeParameter, LintDiagnostic,
-    elided_lifetime_in_path_suggestion, indicate_anonymous_lifetime,
+    add_hidden_lifetime_in_path_suggestion, indicate_anonymous_lifetime,
 };
 use rustc_middle::middle::stability;
 use rustc_middle::ty::TyCtxt;
@@ -77,9 +77,9 @@ pub(super) fn decorate_lint(
                 .decorate_lint(diag)
         }
 
-        BuiltinLintDiag::ElidedLifetimesInPaths(n, path_span, incl_angl_brckt, insertion_span) => {
+        BuiltinLintDiag::HiddenLifetimesInPaths(n, path_span, incl_angl_brckt, insertion_span) => {
             lints::ElidedLifetimesInPaths {
-                subdiag: elided_lifetime_in_path_suggestion(
+                subdiag: add_hidden_lifetime_in_path_suggestion(
                     sess.source_map(),
                     n,
                     path_span,
@@ -90,9 +90,9 @@ pub(super) fn decorate_lint(
             .decorate_lint(diag);
         }
 
-        BuiltinLintDiag::ElidedLifetimesInPathsTied { elided_lifetime_source, suggestions } => {
-            let elided_lifetime_source =
-                elided_lifetime_source.map(|span| lints::ElidedLifetimesInPathsTiedSource { span });
+        BuiltinLintDiag::HiddenLifetimesInOutputPaths { elided_lifetime_source, suggestions } => {
+            let elided_lifetime_source = elided_lifetime_source
+                .map(|span| lints::HiddenLifetimesInOutputPathsSource { span });
 
             let expected = suggestions
                 .iter()
@@ -106,7 +106,7 @@ pub(super) fn decorate_lint(
                 })
                 .collect();
 
-            lints::ElidedLifetimesInPathsTied { expected, suggestions, elided_lifetime_source }
+            lints::HiddenLifetimesInOutputPaths { expected, suggestions, elided_lifetime_source }
                 .decorate_lint(diag)
         }
 

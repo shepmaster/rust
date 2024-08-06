@@ -1929,7 +1929,7 @@ impl Level {
 }
 
 // FIXME(eddyb) this doesn't belong here AFAICT, should be moved to callsite.
-pub fn elided_lifetime_in_path_suggestion(
+pub fn add_hidden_lifetime_in_path_suggestion(
     source_map: &SourceMap,
     n: usize,
     path_span: Span,

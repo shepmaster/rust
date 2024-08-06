@@ -690,24 +690,24 @@ struct DiagMetadata<'ast> {
 }
 
 #[derive(Debug)]
-enum ResolvedElisionTarget {
+enum HiddenLifetimeTarget {
     /// Elision in `&u8` -> `&'_ u8`
     TopLevel(NodeId, Span),
     /// Elision in `Foo` -> `Foo<'_>`
-    Nested(NestedResolvedElisionTarget),
+    Nested(NestedHiddenLifetimeTarget),
 }
 
-impl ResolvedElisionTarget {
+impl HiddenLifetimeTarget {
     fn node_id(&self) -> NodeId {
         match *self {
             Self::TopLevel(n, _) => n,
-            Self::Nested(NestedResolvedElisionTarget { segment_id, .. }) => segment_id,
+            Self::Nested(NestedHiddenLifetimeTarget { segment_id, .. }) => segment_id,
         }
     }
 }
 
 #[derive(Debug)]
-struct NestedResolvedElisionTarget {
+struct NestedHiddenLifetimeTarget {
     segment_id: NodeId,
 
     // These four are used to enrich diagnostics
@@ -758,8 +758,8 @@ struct LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
     /// Count the number of places a lifetime is used.
     lifetime_uses: FxHashMap<LocalDefId, LifetimeUseSet>,
 
-    /// Track which types participated in lifetime elision
-    resolved_lifetime_elisions: Vec<ResolvedElisionTarget>,
+    /// Track which parameters/return values had hidden lifetimes.
+    hidden_lifetimes: Vec<HiddenLifetimeTarget>,
 }
 
 /// Walks the whole crate in DFS order, visiting each item, resolving names as it goes.
@@ -1464,7 +1464,7 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
             // errors at module scope should always be reported
             in_func_body: false,
             lifetime_uses: Default::default(),
-            resolved_lifetime_elisions: Vec::new(),
+            hidden_lifetimes: Vec::new(),
         }
     }
 
@@ -1931,7 +1931,7 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
         );
         self.resolve_anonymous_lifetime(&lt, anchor_id, true);
 
-        self.resolved_lifetime_elisions.push(ResolvedElisionTarget::TopLevel(anchor_id, span));
+        self.hidden_lifetimes.push(HiddenLifetimeTarget::TopLevel(anchor_id, span));
     }
 
     #[instrument(level = "debug", skip(self))]
@@ -2068,7 +2068,7 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
                     LifetimeRibKind::AnonymousCreateParameter { report_in_path: true, .. }
                     | LifetimeRibKind::StaticIfNoLifetimeInScope { .. } => {
                         let sess = self.r.tcx.sess;
-                        let subdiag = rustc_errors::elided_lifetime_in_path_suggestion(
+                        let subdiag = rustc_errors::add_hidden_lifetime_in_path_suggestion(
                             sess.source_map(),
                             expected_lifetimes,
                             path_span,
@@ -2150,8 +2150,8 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
             }
 
             if should_lint {
-                self.resolved_lifetime_elisions.push(ResolvedElisionTarget::Nested(
-                    NestedResolvedElisionTarget {
+                self.hidden_lifetimes.push(HiddenLifetimeTarget::Nested(
+                    NestedHiddenLifetimeTarget {
                         segment_id,
                         type_with_elision: path_span,
                         insert_lifetime: elided_lifetime_span,
@@ -2243,12 +2243,12 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
         inputs: impl Iterator<Item = (Option<&'ast Pat>, &'ast Ty)> + Clone,
         output_ty: &'ast FnRetTy,
     ) {
-        let outer_resolved_lifetime_elisions = take(&mut self.resolved_lifetime_elisions);
+        let outer_hidden_lifetimes = take(&mut self.hidden_lifetimes);
 
         // Add each argument to the rib.
         let elision_lifetime = self.resolve_fn_params(has_self, inputs);
         debug!(?elision_lifetime);
-        let param_resolved_lifetime_elisions = take(&mut self.resolved_lifetime_elisions);
+        let param_hidden_lifetimes = take(&mut self.hidden_lifetimes);
 
         let outer_failures = take(&mut self.diag_metadata.current_elision_failures);
 
@@ -2276,28 +2276,27 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
             }
         };
 
-        // We've recorded all elisions that occurred in the params and
-        // outputs, categorized by top-level or nested.
+        // We've recorded all hidden lifetimes that occurred in the
+        // params and outputs, categorized by top-level or nested.
         //
         // Our primary lint case is when an output lifetime is tied to
         // an input lifetime. In that case, we want to warn about any
         // nested hidden lifetimes in those params or outputs.
         //
-        // The secondary case is for nested elisions that are not part
-        // of the tied lifetime relationship.
+        // The secondary case is for nested hidden lifetimes that are
+        // not part of the tied lifetime relationship.
 
-        let output_resolved_lifetime_elisions =
-            replace(&mut self.resolved_lifetime_elisions, outer_resolved_lifetime_elisions);
+        let output_hidden_lifetimes = replace(&mut self.hidden_lifetimes, outer_hidden_lifetimes);
 
-        match (output_resolved_lifetime_elisions.is_empty(), elision_lifetime) {
+        match (output_hidden_lifetimes.is_empty(), elision_lifetime) {
             (true, _) | (_, None) => {
                 // Treat all parameters as untied
-                self.report_untied_lifetimes_elided_in_paths(param_resolved_lifetime_elisions);
+                self.report_hidden_lifetimes_in_input_paths(param_hidden_lifetimes);
             }
             (false, Some(elision_lifetime)) => {
                 let (primary, secondary): (Vec<_>, Vec<_>) =
-                    param_resolved_lifetime_elisions.into_iter().partition(|re| {
-                        // Recover the `NodeId` of an elided lifetime
+                    param_hidden_lifetimes.into_iter().partition(|re| {
+                        // Recover the `NodeId` of a hidden lifetime
                         let lvl1 = &self.r.lifetimes_res_map[&re.node_id()];
                         let lvl2 = match lvl1 {
                             LifetimeRes::ElidedAnchor { start, .. } => {
@@ -2309,36 +2308,36 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
                         lvl2 == &elision_lifetime
                     });
 
-                self.report_tied_lifetimes_elided_in_paths(
+                self.report_hidden_lifetimes_in_output_paths(
                     fn_id,
                     primary,
-                    output_resolved_lifetime_elisions,
+                    output_hidden_lifetimes,
                 );
-                self.report_untied_lifetimes_elided_in_paths(secondary);
+                self.report_hidden_lifetimes_in_input_paths(secondary);
             }
         }
     }
 
-    fn report_untied_lifetimes_elided_in_paths(
+    fn report_hidden_lifetimes_in_input_paths(
         &mut self,
-        resolved_elisions: impl IntoIterator<Item = ResolvedElisionTarget>,
+        hidden_lifetimes: impl IntoIterator<Item = HiddenLifetimeTarget>,
     ) {
-        for re in resolved_elisions {
-            let ResolvedElisionTarget::Nested(d) = re else { continue };
+        for hl in hidden_lifetimes {
+            let HiddenLifetimeTarget::Nested(n) = hl else { continue };
 
-            let NestedResolvedElisionTarget {
+            let NestedHiddenLifetimeTarget {
                 segment_id,
                 type_with_elision,
                 insert_lifetime,
                 expected_lifetimes,
                 include_angle_bracket,
-            } = d;
+            } = n;
 
             self.r.lint_buffer.buffer_lint(
-                lint::builtin::ELIDED_LIFETIMES_IN_PATHS_UNTIED,
+                lint::builtin::HIDDEN_LIFETIMES_IN_INPUT_PATHS,
                 segment_id,
                 insert_lifetime,
-                lint::BuiltinLintDiag::ElidedLifetimesInPaths(
+                lint::BuiltinLintDiag::HiddenLifetimesInPaths(
                     expected_lifetimes,
                     type_with_elision,
                     include_angle_bracket,
@@ -2348,27 +2347,27 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
         }
     }
 
-    fn report_tied_lifetimes_elided_in_paths(
+    fn report_hidden_lifetimes_in_output_paths(
         &mut self,
         fn_id: NodeId,
-        input_elided_lifetimes: Vec<ResolvedElisionTarget>,
-        output_elided_lifetimes: Vec<ResolvedElisionTarget>,
+        input_hidden_lifetimes: Vec<HiddenLifetimeTarget>,
+        output_hidden_lifetimes: Vec<HiddenLifetimeTarget>,
     ) {
         // Could this be an argument to this function so we don't have
         // to re-find it?
-        let elided_lifetime_source = input_elided_lifetimes.iter().find_map(|hl| match *hl {
-            ResolvedElisionTarget::TopLevel(_, span) => Some(span),
+        let elided_lifetime_source = input_hidden_lifetimes.iter().find_map(|hl| match *hl {
+            HiddenLifetimeTarget::TopLevel(_, span) => Some(span),
             _ => None,
         });
 
         let mut error_spans = Vec::new();
         let mut suggestions = Vec::new();
 
-        let elided_lifetimes = input_elided_lifetimes.into_iter().chain(output_elided_lifetimes);
-        for el in elided_lifetimes {
-            let ResolvedElisionTarget::Nested(n) = el else { continue };
+        let hidden_lifetimes = input_hidden_lifetimes.into_iter().chain(output_hidden_lifetimes);
+        for hl in hidden_lifetimes {
+            let HiddenLifetimeTarget::Nested(n) = hl else { continue };
 
-            let NestedResolvedElisionTarget {
+            let NestedHiddenLifetimeTarget {
                 segment_id: _,
                 type_with_elision,
                 insert_lifetime,
@@ -2383,10 +2382,13 @@ impl<'a, 'ast, 'ra: 'ast, 'tcx> LateResolutionVisitor<'a, 'ast, 'ra, 'tcx> {
 
         if !suggestions.is_empty() {
             self.r.lint_buffer.buffer_lint(
-                lint::builtin::ELIDED_LIFETIMES_IN_PATHS_TIED,
+                lint::builtin::HIDDEN_LIFETIMES_IN_OUTPUT_PATHS,
                 fn_id,
                 error_spans,
-                BuiltinLintDiag::ElidedLifetimesInPathsTied { elided_lifetime_source, suggestions },
+                BuiltinLintDiag::HiddenLifetimesInOutputPaths {
+                    elided_lifetime_source,
+                    suggestions,
+                },
             );
         }
     }

@@ -651,8 +651,8 @@ pub enum BuiltinLintDiag {
         ident: Ident,
     },
     MacroExpandedMacroExportsAccessedByAbsolutePaths(Span),
-    ElidedLifetimesInPaths(usize, Span, bool, Span),
-    ElidedLifetimesInPathsTied {
+    HiddenLifetimesInPaths(usize, Span, bool, Span),
+    HiddenLifetimesInOutputPaths {
         elided_lifetime_source: Option<Span>,
         suggestions: Vec<(Span, usize, bool)>,
     },

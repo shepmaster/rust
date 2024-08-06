@@ -1,6 +1,6 @@
 //@ proc-macro: issue-91763-aux.rs
 
-#![deny(elided_lifetimes_in_paths)]
+#![deny(hidden_lifetimes_in_paths)]
 
 extern crate issue_91763_aux;
 

@@ -1,11 +1,11 @@
-//@revisions: tied untied
+//@revisions: output input
 
 #![allow(elided_named_lifetimes)]
 
-#![cfg_attr(tied, deny(elided_lifetimes_in_paths_tied))]
-//[tied]~^ NOTE: the lint level is defined here
-#![cfg_attr(untied, deny(elided_lifetimes_in_paths_untied))]
-//[untied]~^ NOTE: the lint level is defined here
+#![cfg_attr(output, deny(hidden_lifetimes_in_output_paths))]
+//[output]~^ NOTE: the lint level is defined here
+#![cfg_attr(input, deny(hidden_lifetimes_in_input_paths))]
+//[input]~^ NOTE: the lint level is defined here
 
 struct ContainsLifetime<'a>(&'a u8);
 
@@ -13,20 +13,20 @@ struct ContainsLifetime<'a>(&'a u8);
 // Core desired functionality
 
 fn top_level_to_nested(v: &u8) ->
-    //[tied]~^ NOTE lifetime comes from here
+    //[output]~^ NOTE lifetime comes from here
     ContainsLifetime
-    //[tied]~^ ERROR hidden lifetime parameters
-    //[tied]~| NOTE expected lifetime parameter
-    //[tied]~| HELP indicate the anonymous lifetime
+    //[output]~^ ERROR hidden lifetime parameters
+    //[output]~| NOTE expected lifetime parameter
+    //[output]~| HELP indicate the anonymous lifetime
 {
     ContainsLifetime(v)
 }
 
 fn nested_to_top_level(
     v: ContainsLifetime,
-    //[tied]~^ ERROR hidden lifetime parameters
-    //[tied]~| NOTE expected lifetime parameter
-    //[tied]~| HELP indicate the anonymous lifetime
+    //[output]~^ ERROR hidden lifetime parameters
+    //[output]~| NOTE expected lifetime parameter
+    //[output]~| HELP indicate the anonymous lifetime
 ) -> &u8
 {
     v.0
@@ -34,12 +34,12 @@ fn nested_to_top_level(
 
 fn nested_to_nested(
     v: ContainsLifetime,
-    //[tied]~^ ERROR hidden lifetime parameters
-    //[tied]~| NOTE expected lifetime parameter
-    //[tied]~| HELP indicate the anonymous lifetime
+    //[output]~^ ERROR hidden lifetime parameters
+    //[output]~| NOTE expected lifetime parameter
+    //[output]~| HELP indicate the anonymous lifetime
 ) -> ContainsLifetime
-    //[tied]~^ NOTE expected lifetime parameter
-    //[tied]~| HELP indicate the anonymous lifetime
+    //[output]~^ NOTE expected lifetime parameter
+    //[output]~| HELP indicate the anonymous lifetime
 {
     v
 }
@@ -53,9 +53,9 @@ fn top_level_to_top_level(v: &u8) -> &u8 {
 
 fn named_top_level_to_nested<'a>(v: &'a u8) ->
     ContainsLifetime
-    //[tied]~^ ERROR hidden lifetime parameters
-    //[tied]~| NOTE expected lifetime parameter
-    //[tied]~| HELP indicate the anonymous lifetime
+    //[output]~^ ERROR hidden lifetime parameters
+    //[output]~| NOTE expected lifetime parameter
+    //[output]~| HELP indicate the anonymous lifetime
 {
     ContainsLifetime(v)
 }
@@ -107,25 +107,25 @@ fn named_top_level_to_anon_top_level<'a>(v: &'a u8) -> ContainsLifetime<'_> {
 fn top_level_parameter(v: &u8) {}
 
 fn nested_parameter(v: ContainsLifetime) {}
-//[untied]~^ ERROR hidden lifetime parameters
-//[untied]~| NOTE expected lifetime parameter
+//[input]~^ ERROR hidden lifetime parameters
+//[input]~| NOTE expected lifetime parameter
 
 fn top_level_nested_parameter(v: &ContainsLifetime) {}
-//[untied]~^ ERROR hidden lifetime parameters
-//[untied]~| NOTE expected lifetime parameter
+//[input]~^ ERROR hidden lifetime parameters
+//[input]~| NOTE expected lifetime parameter
 
 // ==========
 // More complicated types
 
 fn top_level_to_multiple_nested(v: &u8) -> (
-    //[tied]~^ NOTE lifetime comes from here
+    //[output]~^ NOTE lifetime comes from here
     ContainsLifetime,
-    //[tied]~^ ERROR hidden lifetime parameters
-    //[tied]~| NOTE expected lifetime parameter
-    //[tied]~| HELP indicate the anonymous lifetime
+    //[output]~^ ERROR hidden lifetime parameters
+    //[output]~| NOTE expected lifetime parameter
+    //[output]~| HELP indicate the anonymous lifetime
     ContainsLifetime,
-    //[tied]~^ NOTE expected lifetime parameter
-    //[tied]~| HELP indicate the anonymous lifetime
+    //[output]~^ NOTE expected lifetime parameter
+    //[output]~| HELP indicate the anonymous lifetime
 )
 {
     (ContainsLifetime(v), ContainsLifetime(v))
@@ -138,21 +138,21 @@ struct AsAMethod(u8);
 impl AsAMethod {
     fn top_level_to_nested(
         v: &u8,
-        //[tied]~^ NOTE lifetime comes from here
+        //[output]~^ NOTE lifetime comes from here
     ) ->
         ContainsLifetime
-        //[tied]~^ ERROR hidden lifetime parameters
-        //[tied]~| NOTE expected lifetime parameter
-        //[tied]~| HELP indicate the anonymous lifetime
+        //[output]~^ ERROR hidden lifetime parameters
+        //[output]~| NOTE expected lifetime parameter
+        //[output]~| HELP indicate the anonymous lifetime
     {
         ContainsLifetime(v)
     }
 
     fn nested_to_top_level(
         v: ContainsLifetime,
-        //[tied]~^ ERROR hidden lifetime parameters
-        //[tied]~| NOTE expected lifetime parameter
-        //[tied]~| HELP indicate the anonymous lifetime
+        //[output]~^ ERROR hidden lifetime parameters
+        //[output]~| NOTE expected lifetime parameter
+        //[output]~| HELP indicate the anonymous lifetime
     ) -> &u8
     {
         v.0
@@ -160,12 +160,12 @@ impl AsAMethod {
 
     fn nested_to_nested(
         v: ContainsLifetime,
-        //[tied]~^ ERROR hidden lifetime parameters
-        //[tied]~| NOTE expected lifetime parameter
-        //[tied]~| HELP indicate the anonymous lifetime
+        //[output]~^ ERROR hidden lifetime parameters
+        //[output]~| NOTE expected lifetime parameter
+        //[output]~| HELP indicate the anonymous lifetime
     ) -> ContainsLifetime
-        //[tied]~^ NOTE expected lifetime parameter
-        //[tied]~| HELP indicate the anonymous lifetime
+        //[output]~^ NOTE expected lifetime parameter
+        //[output]~| HELP indicate the anonymous lifetime
     {
         v
     }
@@ -176,39 +176,39 @@ impl AsAMethod {
 
     fn self_to_nested(
         &self,
-        //[tied]~^ NOTE lifetime comes from here
+        //[output]~^ NOTE lifetime comes from here
     ) ->
         ContainsLifetime
-        //[tied]~^ ERROR hidden lifetime parameters
-        //[tied]~| NOTE expected lifetime parameter
-        //[tied]~| HELP indicate the anonymous lifetime
+        //[output]~^ ERROR hidden lifetime parameters
+        //[output]~| NOTE expected lifetime parameter
+        //[output]~| HELP indicate the anonymous lifetime
     {
         ContainsLifetime(&self.0)
     }
 
     fn self_to_nested_with_irrelevant_top_level_parameter(
         &self,
-        //[tied]~^ NOTE lifetime comes from here
+        //[output]~^ NOTE lifetime comes from here
         _: &u8
     ) ->
         ContainsLifetime
-        //[tied]~^ ERROR hidden lifetime parameters
-        //[tied]~| NOTE expected lifetime parameter
-        //[tied]~| HELP indicate the anonymous lifetime
+        //[output]~^ ERROR hidden lifetime parameters
+        //[output]~| NOTE expected lifetime parameter
+        //[output]~| HELP indicate the anonymous lifetime
     {
         ContainsLifetime(&self.0)
     }
 
     fn self_to_nested_with_irrelevant_nested_parameter(
         &self,
-        //[tied]~^ NOTE lifetime comes from here
+        //[output]~^ NOTE lifetime comes from here
         _: ContainsLifetime,
-        //[untied]~^ ERROR hidden lifetime parameters
-        //[untied]~| NOTE expected lifetime parameter
+        //[input]~^ ERROR hidden lifetime parameters
+        //[input]~| NOTE expected lifetime parameter
     ) -> ContainsLifetime
-        //[tied]~^ ERROR hidden lifetime parameters
-        //[tied]~| NOTE expected lifetime parameter
-        //[tied]~| HELP indicate the anonymous lifetime
+        //[output]~^ ERROR hidden lifetime parameters
+        //[output]~| NOTE expected lifetime parameter
+        //[output]~| HELP indicate the anonymous lifetime
     {
         ContainsLifetime(&self.0)
     }
@@ -216,15 +216,15 @@ impl AsAMethod {
     fn nested_in_parameter(
         &self,
         v: ContainsLifetime,
-        //[untied]~^ ERROR hidden lifetime parameters
-        //[untied]~| NOTE expected lifetime parameter
+        //[input]~^ ERROR hidden lifetime parameters
+        //[input]~| NOTE expected lifetime parameter
     ) {}
 
     fn nested_in_parameter_with_return(
         &self,
         v: ContainsLifetime,
-        //[untied]~^ ERROR hidden lifetime parameters
-        //[untied]~| NOTE expected lifetime parameter
+        //[input]~^ ERROR hidden lifetime parameters
+        //[input]~| NOTE expected lifetime parameter
     ) -> &u8
     {
         &self.0

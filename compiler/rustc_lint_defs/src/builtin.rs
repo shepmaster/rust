@@ -39,8 +39,6 @@ declare_lint_pass! {
         DEPRECATED_WHERE_CLAUSE_LOCATION,
         DUPLICATE_MACRO_ATTRIBUTES,
         ELIDED_LIFETIMES_IN_ASSOCIATED_CONSTANT,
-        ELIDED_LIFETIMES_IN_PATHS_TIED,
-        ELIDED_LIFETIMES_IN_PATHS_UNTIED,
         ELIDED_NAMED_LIFETIMES,
         EXPLICIT_BUILTIN_CFGS_IN_FLAGS,
         EXPORTED_PRIVATE_DEPENDENCIES,
@@ -49,6 +47,8 @@ declare_lint_pass! {
         FUNCTION_ITEM_REFERENCES,
         FUZZY_PROVENANCE_CASTS,
         HIDDEN_GLOB_REEXPORTS,
+        HIDDEN_LIFETIMES_IN_INPUT_PATHS,
+        HIDDEN_LIFETIMES_IN_OUTPUT_PATHS,
         ILL_FORMED_ATTRIBUTE_INPUT,
         INCOMPLETE_INCLUDE,
         INEFFECTIVE_UNSTABLE_TRAIT_IMPL,
@@ -1830,14 +1830,14 @@ declare_lint! {
 }
 
 declare_lint! {
-    /// The `elided_lifetimes_in_paths_tied` lint detects the use of
+    /// The `hidden_lifetimes_in_output_paths` lint detects the use of
     /// hidden lifetime parameters when those lifetime parameters tie
     /// an input lifetime parameter to an output lifetime parameter.
     ///
     /// ### Example
     ///
     /// ```rust,compile_fail
-    /// #![deny(elided_lifetimes_in_paths_tied)]
+    /// #![deny(hidden_lifetimes_in_output_paths)]
     /// #![deny(warnings)]
     /// struct Foo<'a> {
     ///     x: &'a u32
@@ -1852,7 +1852,7 @@ declare_lint! {
     ///
     /// ### Explanation
     ///
-    /// Elided lifetime parameters can make it difficult to see at a glance
+    /// Hidden lifetime parameters can make it difficult to see at a glance
     /// that borrowing is occurring. This lint ensures that lifetime
     /// parameters are always explicitly stated, even if it is the `'_`
     /// [placeholder lifetime].
@@ -1861,13 +1861,13 @@ declare_lint! {
     /// may require a significant transition for old code.
     ///
     /// [placeholder lifetime]: https://doc.rust-lang.org/reference/lifetime-elision.html#lifetime-elision-in-functions
-    pub ELIDED_LIFETIMES_IN_PATHS_TIED,
+    pub HIDDEN_LIFETIMES_IN_OUTPUT_PATHS,
     Allow,
-    "hidden lifetime parameters in types are deprecated"
+    "hidden lifetime parameters that connect input to output lifetimes are deprecated"
 }
 
 declare_lint! {
-    /// The `elided_lifetimes_in_paths_untied` lint detects the use of
+    /// The `hidden_lifetimes_in_input_paths` lint detects the use of
     /// hidden lifetime parameters when those lifetime parameters do
     /// not tie an input lifetime parameter to an output lifetime
     /// parameter.
@@ -1875,7 +1875,7 @@ declare_lint! {
     /// ### Example
     ///
     /// ```rust,compile_fail
-    /// #![deny(elided_lifetimes_in_paths_untied)]
+    /// #![deny(hidden_lifetimes_in_input_paths)]
     /// #![deny(warnings)]
     /// struct Foo<'a> {
     ///     x: &'a u32
@@ -1890,7 +1890,7 @@ declare_lint! {
     ///
     /// ### Explanation
     ///
-    /// Elided lifetime parameters can make it difficult to see at a glance
+    /// Hidden lifetime parameters can make it difficult to see at a glance
     /// that borrowing is occurring. This lint ensures that lifetime
     /// parameters are always explicitly stated, even if it is the `'_`
     /// [placeholder lifetime].
@@ -1899,9 +1899,9 @@ declare_lint! {
     /// may require a significant transition for old code.
     ///
     /// [placeholder lifetime]: https://doc.rust-lang.org/reference/lifetime-elision.html#lifetime-elision-in-functions
-    pub ELIDED_LIFETIMES_IN_PATHS_UNTIED,
+    pub HIDDEN_LIFETIMES_IN_INPUT_PATHS,
     Allow,
-    "hidden lifetime parameters in types make it hard to tell when borrowing is happening",
+    "hidden lifetime parameters in input types make it hard to tell when borrowing is happening",
     crate_level_only
 }
 
