@@ -1,5 +1,5 @@
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/static.rs:16:18
+  --> $DIR/static.rs:17:18
    |
 LL | fn ampersand(x: &'static u8) -> &u8 {
    |                  ^^^^^^^        --- the elided lifetime gets resolved as `'static`
@@ -17,7 +17,7 @@ LL | fn ampersand(x: &'static u8) -> &'static u8 {
    |                                  +++++++
 
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/static.rs:23:17
+  --> $DIR/static.rs:24:17
    |
 LL | fn brackets(x: &'static u8) -> Brackets {
    |                 ^^^^^^^        -------- the elided lifetime gets resolved as `'static`
@@ -30,7 +30,7 @@ LL | fn brackets(x: &'static u8) -> Brackets<'static> {
    |                                        +++++++++
 
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/static.rs:30:14
+  --> $DIR/static.rs:31:14
    |
 LL | fn comma(x: &'static u8) -> Comma<u8> {
    |              ^^^^^^^        --------- the elided lifetime gets resolved as `'static`
@@ -43,7 +43,7 @@ LL | fn comma(x: &'static u8) -> Comma<'static, u8> {
    |                                   ++++++++
 
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/static.rs:35:19
+  --> $DIR/static.rs:36:19
    |
 LL | fn underscore(x: &'static u8) -> &'_ u8 {
    |                   ^^^^^^^         -- the elided lifetime gets resolved as `'static`

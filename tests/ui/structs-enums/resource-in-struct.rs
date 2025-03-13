@@ -19,7 +19,7 @@ impl<'a> Drop for close_res<'a> {
     }
 }
 
-fn close_res(i: closable) -> close_res {
+fn close_res(i: closable<'_>) -> close_res<'_> {
     close_res {
         i: i
     }

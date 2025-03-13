@@ -1,6 +1,6 @@
 //@ run-pass
 
-#![allow(dead_code, mismatched_lifetime_syntaxes)]
+#![allow(dead_code, mismatched_lifetime_syntaxes, hidden_lifetimes_in_output_paths)]
 struct Foo<'a>(&'a u8);
 
 fn foo(x: &u8) -> Foo<'_> {
