@@ -21,11 +21,17 @@ trait SliceExt2 {
 impl<T> SliceExt2 for [T] {
     type Item = T;
 
-    fn split2<P>(&self, pred: P) -> Splits<T, P> where P: FnMut(&T) -> bool {
+    fn split2<P>(&self, pred: P) -> Splits<'_, T, P>
+    where
+        P: FnMut(&T) -> bool,
+    {
         loop {}
     }
 
-    fn splitn2<P>(&self, n: usize, pred: P) -> SplitsN<Splits<T, P>> where P: FnMut(&T) -> bool {
+    fn splitn2<P>(&self, n: usize, pred: P) -> SplitsN<Splits<'_, T, P>>
+    where
+        P: FnMut(&T) -> bool,
+    {
         self.split2(pred);
         loop {}
     }
