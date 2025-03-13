@@ -24,5 +24,18 @@ LL | |                    ).next();
    = note: `-D clippy::filter-next` implied by `-D warnings`
    = help: to override `-D warnings` add `#[allow(clippy::filter_next)]`
 
-error: aborting due to 2 previous errors
+error: paths containing hidden lifetime parameters are deprecated
+  --> tests/ui/methods.rs:54:28
+   |
+LL |     pub fn new(s: &str) -> Lt2 {
+   |                            ^^^
+   |
+   = note: `-D hidden-lifetimes-in-output-paths` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(hidden_lifetimes_in_output_paths)]`
+help: indicate the anonymous lifetime
+   |
+LL |     pub fn new(s: &str) -> Lt2<'_> {
+   |                               ++++
+
+error: aborting due to 3 previous errors
 

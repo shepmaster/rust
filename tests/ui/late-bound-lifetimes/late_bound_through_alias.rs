@@ -1,6 +1,6 @@
 //@ check-pass
 
-fn f(_: X) -> X {
+fn f(_: X<'_>) -> X<'_> {
     unimplemented!()
 }
 

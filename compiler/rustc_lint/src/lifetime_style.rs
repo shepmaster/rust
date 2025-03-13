@@ -136,7 +136,7 @@ declare_lint! {
     ///
     /// [placeholder lifetime]: https://doc.rust-lang.org/reference/lifetime-elision.html#lifetime-elision-in-functions
     pub HIDDEN_LIFETIMES_IN_OUTPUT_PATHS,
-    Allow,
+    Warn,
     "hidden lifetime parameters in types in function return values are deprecated"
 }
 

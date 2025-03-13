@@ -1,4 +1,5 @@
 #![deny(mismatched_lifetime_syntaxes)]
+#![allow(hidden_lifetimes_in_output_paths)]
 
 fn ampersand<'a>(x: &'a u8) -> &u8 {
     //~^ ERROR lifetime flowing from input to output with different syntax

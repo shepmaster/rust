@@ -19,5 +19,18 @@ error: this method is named `iter` but its return type does not implement `Itera
 LL |     fn iter(&self) -> Self::I;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error: aborting due to 3 previous errors
+error: paths containing hidden lifetime parameters are deprecated
+  --> tests/ui/iter_not_returning_iterator.rs:74:23
+   |
+LL |     fn iter(&self) -> core::slice::Iter<u8> {
+   |                       ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D hidden-lifetimes-in-output-paths` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(hidden_lifetimes_in_output_paths)]`
+help: indicate the anonymous lifetime
+   |
+LL |     fn iter(&self) -> core::slice::Iter<'_, u8> {
+   |                                         +++
+
+error: aborting due to 4 previous errors
 

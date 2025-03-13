@@ -1,5 +1,7 @@
 //@ run-rustfix
 
+#![allow(hidden_lifetimes_in_output_paths)]
+
 trait Greeter0 {
     fn greet(&self);
 }

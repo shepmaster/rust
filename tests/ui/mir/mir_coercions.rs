@@ -27,16 +27,16 @@ struct TrivPtrWrapper<'a, T: 'a+?Sized>(&'a T);
 impl<'a, T: ?Sized+Unsize<U>, U: ?Sized>
     CoerceUnsized<TrivPtrWrapper<'a, U>> for TrivPtrWrapper<'a, T> {}
 
-fn coerce_ptr_wrapper(p: PtrWrapper<[u8; 3]>) -> PtrWrapper<[u8]> {
+fn coerce_ptr_wrapper(p: PtrWrapper<'_, [u8; 3]>) -> PtrWrapper<'_, [u8]> {
     p
 }
 
-fn coerce_triv_ptr_wrapper(p: TrivPtrWrapper<[u8; 3]>) -> TrivPtrWrapper<[u8]> {
+fn coerce_triv_ptr_wrapper(p: TrivPtrWrapper<'_, [u8; 3]>) -> TrivPtrWrapper<'_, [u8]> {
     p
 }
 
-fn coerce_fat_ptr_wrapper(p: PtrWrapper<dyn Fn(u32) -> u32+Send>)
-                          -> PtrWrapper<dyn Fn(u32) -> u32> {
+fn coerce_fat_ptr_wrapper(p: PtrWrapper<'_, dyn Fn(u32) -> u32+Send>)
+                          -> PtrWrapper<'_, dyn Fn(u32) -> u32> {
     p
 }
 

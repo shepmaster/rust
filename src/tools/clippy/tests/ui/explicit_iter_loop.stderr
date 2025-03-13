@@ -112,5 +112,29 @@ error: it is more concise to loop over references to containers instead of using
 LL |     for _ in r.iter() {}
    |              ^^^^^^^^ help: to write this more concisely, try: `r`
 
-error: aborting due to 18 previous errors
+error: paths containing hidden lifetime parameters are deprecated
+  --> tests/ui/explicit_iter_loop.rs:80:27
+   |
+LL |         fn iter(&self) -> slice::Iter<u8> {
+   |                           ^^^^^^^^^^^^^^^
+   |
+   = note: `-D hidden-lifetimes-in-output-paths` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(hidden_lifetimes_in_output_paths)]`
+help: indicate the anonymous lifetime
+   |
+LL |         fn iter(&self) -> slice::Iter<'_, u8> {
+   |                                       +++
+
+error: paths containing hidden lifetime parameters are deprecated
+  --> tests/ui/explicit_iter_loop.rs:84:35
+   |
+LL |         fn iter_mut(&mut self) -> slice::IterMut<u8> {
+   |                                   ^^^^^^^^^^^^^^^^^^
+   |
+help: indicate the anonymous lifetime
+   |
+LL |         fn iter_mut(&mut self) -> slice::IterMut<'_, u8> {
+   |                                                  +++
+
+error: aborting due to 20 previous errors
 

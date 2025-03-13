@@ -7,5 +7,18 @@ LL |     for _ in x.iter().next() {}
    = note: `-D clippy::iter-next-loop` implied by `-D warnings`
    = help: to override `-D warnings` add `#[allow(clippy::iter_next_loop)]`
 
-error: aborting due to 1 previous error
+error: paths containing hidden lifetime parameters are deprecated
+  --> tests/ui/iter_next_loop.rs:11:27
+   |
+LL |         fn next(&self) -> std::slice::Iter<u8> {
+   |                           ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D hidden-lifetimes-in-output-paths` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(hidden_lifetimes_in_output_paths)]`
+help: indicate the anonymous lifetime
+   |
+LL |         fn next(&self) -> std::slice::Iter<'_, u8> {
+   |                                            +++
+
+error: aborting due to 2 previous errors
 
