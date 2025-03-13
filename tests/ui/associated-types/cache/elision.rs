@@ -1,3 +1,5 @@
+#![allow(hidden_lifetimes_in_output_paths)]
+
 // Check that you are allowed to implement using elision but write
 // trait without elision (a bug in this cropped up during
 // bootstrapping, so this is a regression test).

@@ -2,11 +2,11 @@
 
 struct Foo<'a>(&'a ());
 
-fn with_fn() -> fn(Foo) {
+fn with_fn() -> fn(Foo<'_>) {
     |_| ()
 }
 
-fn with_impl_fn() -> impl Fn(Foo) {
+fn with_impl_fn() -> impl Fn(Foo<'_>) {
     |_| ()
 }
 

@@ -3,6 +3,7 @@
 
 #![feature(lazy_type_alias)]
 #![allow(incomplete_features)]
+#![allow(hidden_lifetimes_in_output_paths)]
 
 type Ref<'a> = &'a ();
 

@@ -13,7 +13,7 @@ impl Drop for AtomicBorrowRefMut {
     }
 }
 
-fn map(orig: AtomicRefMut) -> AtomicRefMut {
+fn map(orig: AtomicRefMut<'_>) -> AtomicRefMut<'_> {
     AtomicRefMut {
         value: orig.value,
         borrow: orig.borrow,

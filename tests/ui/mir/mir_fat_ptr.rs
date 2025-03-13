@@ -24,7 +24,7 @@ fn fat_ptr_from_struct(s: FatPtrContainer) -> &[u8] {
     s.ptr
 }
 
-fn fat_ptr_to_struct(a: &[u8]) -> FatPtrContainer {
+fn fat_ptr_to_struct(a: &[u8]) -> FatPtrContainer<'_> {
     FatPtrContainer { ptr: a }
 }
 

@@ -1,5 +1,5 @@
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/missing-lifetime-kind.rs:3:22
+  --> $DIR/missing-lifetime-kind.rs:4:22
    |
 LL | fn ampersand<'a>(x: &'a u8) -> &u8 {
    |                      ^^        --- the elided lifetime gets resolved as `'a`
@@ -17,7 +17,7 @@ LL | fn ampersand<'a>(x: &'a u8) -> &'a u8 {
    |                                 ++
 
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/missing-lifetime-kind.rs:10:21
+  --> $DIR/missing-lifetime-kind.rs:11:21
    |
 LL | fn brackets<'a>(x: &'a u8) -> Brackets {
    |                     ^^        -------- the elided lifetime gets resolved as `'a`
@@ -30,7 +30,7 @@ LL | fn brackets<'a>(x: &'a u8) -> Brackets<'a> {
    |                                       ++++
 
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/missing-lifetime-kind.rs:17:18
+  --> $DIR/missing-lifetime-kind.rs:18:18
    |
 LL | fn comma<'a>(x: &'a u8) -> Comma<u8> {
    |                  ^^        --------- the elided lifetime gets resolved as `'a`
@@ -43,7 +43,7 @@ LL | fn comma<'a>(x: &'a u8) -> Comma<'a, u8> {
    |                                  +++
 
 error: lifetime flowing from input to output with different syntax
-  --> $DIR/missing-lifetime-kind.rs:22:23
+  --> $DIR/missing-lifetime-kind.rs:23:23
    |
 LL | fn underscore<'a>(x: &'a u8) -> &'_ u8 {
    |                       ^^         -- the elided lifetime gets resolved as `'a`

@@ -1,4 +1,5 @@
 #![deny(mismatched_lifetime_syntaxes)]
+#![allow(hidden_lifetimes_in_output_paths)]
 
 use std::borrow::Cow;
 
