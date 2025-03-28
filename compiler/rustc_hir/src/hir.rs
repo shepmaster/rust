@@ -36,9 +36,34 @@ pub(crate) use crate::hir_id::{HirId, ItemLocalId, ItemLocalMap, OwnerId};
 use crate::intravisit::{FnKind, VisitorExt};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, HashStable_Generic)]
-pub enum IsAnonInPath {
-    No,
-    Yes,
+pub enum LifetimeSource {
+    Reference,
+    Path { with_angle_brackets: bool },
+    OutlivesBound,
+    PreciseCapturing,
+    Other,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, HashStable_Generic)]
+pub enum LifetimeSyntax {
+    Hidden,
+    Anonymous,
+    Named,
+}
+
+impl From<Ident> for LifetimeSyntax {
+    fn from(ident: Ident) -> Self {
+        let name = ident.name;
+
+        if name == kw::Empty {
+            LifetimeSyntax::Hidden
+        } else if name == kw::UnderscoreLifetime {
+            LifetimeSyntax::Anonymous
+        } else {
+            debug_assert!(name.as_str().starts_with('\''));
+            LifetimeSyntax::Named
+        }
+    }
 }
 
 /// A lifetime. The valid field combinations are non-obvious. The following
@@ -88,7 +113,8 @@ pub struct Lifetime {
 
     /// Is the lifetime anonymous and in a path? Used only for error
     /// suggestions. See `Lifetime::suggestion` for example use.
-    pub is_anon_in_path: IsAnonInPath,
+    pub source: LifetimeSource,
+    pub syntax: LifetimeSyntax,
 }
 
 #[derive(Debug, Copy, Clone, HashStable_Generic)]
@@ -185,9 +211,10 @@ impl Lifetime {
         hir_id: HirId,
         ident: Ident,
         res: LifetimeName,
-        is_anon_in_path: IsAnonInPath,
+        source: LifetimeSource,
+        syntax: LifetimeSyntax,
     ) -> Lifetime {
-        let lifetime = Lifetime { hir_id, ident, res, is_anon_in_path };
+        let lifetime = Lifetime { hir_id, ident, res, source, syntax };
 
         // Sanity check: elided lifetimes form a strict subset of anonymous lifetimes.
         #[cfg(debug_assertions)]
@@ -209,23 +236,44 @@ impl Lifetime {
         self.ident.name == kw::UnderscoreLifetime
     }
 
+    pub fn is_syntactically_hidden(&self) -> bool {
+        matches!(self.syntax, LifetimeSyntax::Hidden)
+    }
+
+    pub fn is_syntactically_anonymous(&self) -> bool {
+        matches!(self.syntax, LifetimeSyntax::Anonymous)
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.res == LifetimeName::Static
+    }
+
     pub fn suggestion(&self, new_lifetime: &str) -> (Span, String) {
+        use LifetimeSource::*;
+        use LifetimeSyntax::*;
+
         debug_assert!(new_lifetime.starts_with('\''));
 
-        match (self.is_anon_in_path, self.ident.span.is_empty()) {
+        match (self.syntax, self.source) {
+            // The user wrote `'a` or `'_`.
+            (Named | Anonymous, _) => (self.ident.span, format!("{new_lifetime}")),
+
             // The user wrote `Path<T>`, and omitted the `'_,`.
-            (IsAnonInPath::Yes, true) => (self.ident.span, format!("{new_lifetime}, ")),
+            (Hidden, Path { with_angle_brackets: true }) => {
+                (self.ident.span, format!("{new_lifetime}, "))
+            }
 
             // The user wrote `Path` and omitted the `<'_>`.
-            (IsAnonInPath::Yes, false) => {
+            (Hidden, Path { with_angle_brackets: false }) => {
                 (self.ident.span.shrink_to_hi(), format!("<{new_lifetime}>"))
             }
 
             // The user wrote `&type` or `&mut type`.
-            (IsAnonInPath::No, true) => (self.ident.span, format!("{new_lifetime} ")),
+            (Hidden, Reference) => (self.ident.span, format!("{new_lifetime} ")),
 
-            // The user wrote `'a` or `'_`.
-            (IsAnonInPath::No, false) => (self.ident.span, format!("{new_lifetime}")),
+            (Hidden, source) => {
+                unreachable!("can't suggest for a hidden lifetime of {source:?}")
+            }
         }
     }
 }
