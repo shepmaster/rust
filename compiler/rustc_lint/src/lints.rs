@@ -3195,9 +3195,7 @@ impl Subdiagnostic for MismatchedLifetimeSyntaxesSuggestion {
     fn add_to_diag<G: EmissionGuarantee>(self, diag: &mut Diag<'_, G>) {
         use MismatchedLifetimeSyntaxesSuggestion::*;
 
-        let style = |tool_only| {
-            if tool_only { SuggestionStyle::CompletelyHidden } else { SuggestionStyle::ShowAlways }
-        };
+        let style = |_tool_only: bool| SuggestionStyle::ShowAlways;
 
         match self {
             Implicit { suggestions, tool_only } => {
