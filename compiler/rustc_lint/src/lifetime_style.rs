@@ -631,7 +631,7 @@ impl<'tcx> LateLintPass<'tcx> for HiddenLifetimesInTypePaths {
         for path_segment in path_segments {
             for arg in path_segment.args().args {
                 if let hir::GenericArg::Lifetime(lifetime) = arg
-                    && lifetime.is_syntactically_hidden()
+                    && lifetime.is_implicit()
                     && reportable_lifetime_resolution(lifetime.kind)
                 {
                     suggestions.push(lifetime.suggestion("'_"))
