@@ -437,7 +437,7 @@ fn report_hidden_in_paths<'tcx>(
         .flat_map(|(_, info)| info)
         .filter(|info| {
             matches!(info.lifetime.source, LifetimeSource::Path { .. })
-                && info.lifetime.is_syntactically_hidden()
+                && info.lifetime.is_implicit()
         });
 
     let mut reporting_spans = Vec::new();
