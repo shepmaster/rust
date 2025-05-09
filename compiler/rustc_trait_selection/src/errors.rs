@@ -587,7 +587,7 @@ impl Subdiagnostic for AddLifetimeParamsSuggestion<'_> {
                                         matches!(
                                             arg,
                                             hir::GenericArg::Lifetime(lifetime)
-                                                if lifetime.is_syntactically_hidden()
+                                                if lifetime.is_implicit()
                                         )
                                     }) {
                                         self.suggestions.push((
