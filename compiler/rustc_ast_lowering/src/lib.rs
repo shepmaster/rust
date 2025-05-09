@@ -1406,8 +1406,8 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         t: &Ty,
         region: Option<Lifetime>,
     ) -> &'hir hir::Lifetime {
-        let (region, syntax) = match region {
-            Some(region) => (region, region.ident.into()),
+        let (id, span, syntax) = match region {
+            Some(region) => (region.id, region.ident.span, region.ident.into()),
 
             None => {
                 let id = if let Some(LifetimeRes::ElidedAnchor { start, end }) =
@@ -1419,11 +1419,11 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                     self.next_node_id()
                 };
                 let span = self.tcx.sess.source_map().start_point(t.span).shrink_to_hi();
-                let region = Lifetime { ident: Ident::new(kw::UnderscoreLifetime, span), id };
-                (region, LifetimeSyntax::Implicit)
+                (id, span, LifetimeSyntax::Implicit)
             }
         };
-        self.lower_lifetime(&region, LifetimeSource::Reference, syntax)
+
+        self.new_named_lifetime(id, id, span, LifetimeSource::Reference, syntax)
     }
 
     /// Lowers a `ReturnPositionOpaqueTy` (`-> impl Trait`) or a `TypeAliasesOpaqueTy` (`type F =
@@ -1790,7 +1790,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         source: LifetimeSource,
         syntax: LifetimeSyntax,
     ) -> &'hir hir::Lifetime {
-        self.new_named_lifetime(l.id, l.id, l.ident, source, syntax)
+        self.new_named_lifetime(l.id, l.id, l.ident.span, source, syntax)
     }
 
     fn lower_lifetime_hidden_in_path(
@@ -1802,7 +1802,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         self.new_named_lifetime(
             id,
             id,
-            Ident::new(kw::UnderscoreLifetime, span),
+            span,
             LifetimeSource::Path { angle_brackets },
             LifetimeSyntax::Implicit,
         )
@@ -1813,7 +1813,8 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         &mut self,
         id: NodeId,
         new_id: NodeId,
-        ident: Ident,
+        backup_span: Span,
+//        ident: Ident,
         source: LifetimeSource,
         syntax: LifetimeSyntax,
     ) -> &'hir hir::Lifetime {
@@ -1821,28 +1822,28 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         let res = match res {
             LifetimeRes::Param { param, .. } => hir::LifetimeKind::Param(param),
             LifetimeRes::Fresh { param, .. } => {
-                debug_assert_eq!(ident.name, kw::UnderscoreLifetime);
+                //debug_assert_eq!(ident.name, kw::UnderscoreLifetime);
                 let param = self.local_def_id(param);
                 hir::LifetimeKind::Param(param)
             }
             LifetimeRes::Infer => {
-                debug_assert_eq!(ident.name, kw::UnderscoreLifetime);
+                //debug_assert_eq!(ident.name, kw::UnderscoreLifetime);
                 hir::LifetimeKind::Infer
             }
             LifetimeRes::Static { .. } => {
-                debug_assert!(matches!(ident.name, kw::StaticLifetime | kw::UnderscoreLifetime));
+                //debug_assert!(matches!(ident.name, kw::StaticLifetime | kw::UnderscoreLifetime));
                 hir::LifetimeKind::Static
             }
             LifetimeRes::Error => hir::LifetimeKind::Error,
             LifetimeRes::ElidedAnchor { .. } => {
-                panic!("Unexpected `ElidedAnchar` {:?} at {:?}", ident, ident.span);
+                panic!("Unexpected `ElidedAnchor` {:?} at {:?}", "fixme ident", "fixme ident.span");
             }
         };
 
         debug!(?res);
         self.arena.alloc(hir::Lifetime::new(
             self.lower_node_id(new_id),
-            self.lower_ident(ident),
+            self.lower_span(backup_span),
             res,
             source,
             syntax,
@@ -2443,7 +2444,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     fn elided_dyn_bound(&mut self, span: Span) -> &'hir hir::Lifetime {
         let r = hir::Lifetime::new(
             self.next_id(),
-            Ident::new(kw::UnderscoreLifetime, self.lower_span(span)),
+            self.lower_span(span),
             hir::LifetimeKind::ImplicitObjectLifetimeDefault,
             LifetimeSource::Other,
             LifetimeSyntax::Implicit,

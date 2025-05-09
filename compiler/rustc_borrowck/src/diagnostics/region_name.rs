@@ -590,7 +590,7 @@ impl<'tcx> MirBorrowckCtxt<'_, '_, 'tcx> {
         if lifetime.is_anonymous() {
             None
         } else {
-            Some(RegionNameHighlight::MatchedAdtAndSegment(lifetime.ident.span))
+            Some(RegionNameHighlight::MatchedAdtAndSegment(lifetime.span()))
         }
     }
 

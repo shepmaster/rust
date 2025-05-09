@@ -4200,7 +4200,7 @@ impl<'infcx, 'tcx> MirBorrowckCtxt<'_, 'infcx, 'tcx> {
                             hir::TyKind::Ref(lifetime, _) => {
                                 // With access to the lifetime, we can get
                                 // the span of it.
-                                arguments.push((*argument, lifetime.ident.span));
+                                arguments.push((*argument, lifetime.span()));
                             }
                             // Resolve `self` whose self type is `&T`.
                             hir::TyKind::Path(hir::QPath::Resolved(None, path)) => {
@@ -4214,7 +4214,7 @@ impl<'infcx, 'tcx> MirBorrowckCtxt<'_, 'infcx, 'tcx> {
                                         .expect_impl()
                                     && let hir::TyKind::Ref(lifetime, _) = self_ty.kind
                                 {
-                                    arguments.push((*argument, lifetime.ident.span));
+                                    arguments.push((*argument, lifetime.span()));
                                 }
                             }
                             _ => {
@@ -4235,7 +4235,7 @@ impl<'infcx, 'tcx> MirBorrowckCtxt<'_, 'infcx, 'tcx> {
                 let mut return_span = fn_decl.output.span();
                 if let hir::FnRetTy::Return(ty) = &fn_decl.output {
                     if let hir::TyKind::Ref(lifetime, _) = ty.kind {
-                        return_span = lifetime.ident.span;
+                        return_span = lifetime.span();
                     }
                 }
 

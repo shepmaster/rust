@@ -865,7 +865,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // `&'name Ty` -> `&'name mut Ty` or `&Ty` -> `&mut Ty`
                 vec![(
                     ty_ref.1.ty.span.shrink_to_lo(),
-                    format!("{}mut ", if ty_ref.0.ident.span.is_empty() { "" } else { " " },),
+                    format!("{}mut ", if ty_ref.0.span().is_empty() { "" } else { " " },),
                 )]
             };
             sugg.extend([

@@ -75,10 +75,8 @@ pub enum LifetimeSyntax {
     Implicit,
 
     /// E.g. `&'_ Type`, `ContainsLifetime<'_>`, `impl Trait + '_`, `impl Trait + use<'_>`
-    ExplicitAnonymous,
-
     /// E.g. `&'a Type`, `ContainsLifetime<'a>`, `impl Trait + 'a`, `impl Trait + use<'a>`
-    ExplicitBound,
+    Explicit(Ident),
 }
 
 impl From<Ident> for LifetimeSyntax {
@@ -87,11 +85,11 @@ impl From<Ident> for LifetimeSyntax {
 
         if name == kw::Empty {
             unreachable!("A lifetime name should never be empty");
-        } else if name == kw::UnderscoreLifetime {
-            LifetimeSyntax::ExplicitAnonymous
+        // } else if name == kw::UnderscoreLifetime {
+        //     LifetimeSyntax::ExplicitAnonymous
         } else {
             debug_assert!(name.as_str().starts_with('\''));
-            LifetimeSyntax::ExplicitBound
+            LifetimeSyntax::Explicit(ident)
         }
     }
 }
@@ -151,10 +149,12 @@ pub struct Lifetime {
     #[stable_hasher(ignore)]
     pub hir_id: HirId,
 
+    pub backup_span: Span,
+
     /// Either a named lifetime definition (e.g. `'a`, `'static`) or an
     /// anonymous lifetime (`'_`, either explicitly written, or inserted for
     /// things like `&type`).
-    pub ident: Ident,
+    // pub ident: Ident,
 
     /// Semantics of this lifetime.
     pub kind: LifetimeKind,
@@ -253,19 +253,22 @@ impl LifetimeKind {
 
 impl fmt::Display for Lifetime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.ident.name.fmt(f)
+        if let LifetimeSyntax::Explicit(ident) = self.syntax {
+            ident.name.fmt(f)?;
+        }
+        Ok(())
     }
 }
 
 impl Lifetime {
     pub fn new(
         hir_id: HirId,
-        ident: Ident,
+        backup_span: Span,
         kind: LifetimeKind,
         source: LifetimeSource,
         syntax: LifetimeSyntax,
     ) -> Lifetime {
-        let lifetime = Lifetime { hir_id, ident, kind, source, syntax };
+        let lifetime = Lifetime { hir_id, backup_span, kind, source, syntax };
 
         // Sanity check: elided lifetimes form a strict subset of anonymous lifetimes.
         #[cfg(debug_assertions)]
@@ -279,12 +282,41 @@ impl Lifetime {
         lifetime
     }
 
+    pub fn span(&self) -> Span {
+        match self.syntax {
+            LifetimeSyntax::Implicit => self.backup_span,
+            LifetimeSyntax::Explicit(ident) => ident.span,
+        }
+    }
+
+    // TODO: review usages of this to better avoid panic
+    pub fn ident(&self) -> Ident {
+        self.opt_ident().expect("There wasn't an ident yo")
+    }
+
+    pub fn fallback_ident(&self) -> Ident {
+        match self.syntax {
+            LifetimeSyntax::Implicit => Ident::new(kw::UnderscoreLifetime, self.backup_span),
+            LifetimeSyntax::Explicit(ident) => ident,
+        }
+    }
+
+    pub fn opt_ident(&self) -> Option<Ident> {
+        match self.syntax {
+            LifetimeSyntax::Implicit => None,
+            LifetimeSyntax::Explicit(ident) => Some(ident),
+        }
+    }
+
     pub fn is_elided(&self) -> bool {
         self.kind.is_elided()
     }
 
     pub fn is_anonymous(&self) -> bool {
-        self.ident.name == kw::UnderscoreLifetime
+        match self.syntax {
+            LifetimeSyntax::Implicit => true,
+            LifetimeSyntax::Explicit(ident) => ident.name == kw::UnderscoreLifetime,
+        }
     }
 
     pub fn is_implicit(&self) -> bool {
@@ -303,25 +335,25 @@ impl Lifetime {
 
         match (self.syntax, self.source) {
             // The user wrote `'a` or `'_`.
-            (ExplicitBound | ExplicitAnonymous, _) => (self.ident.span, format!("{new_lifetime}")),
+            (Explicit(ident), _) => (ident.span, format!("{new_lifetime}")),
 
             // The user wrote `Path<T>`, and omitted the `'_,`.
             (Implicit, Path { angle_brackets: AngleBrackets::Full }) => {
-                (self.ident.span, format!("{new_lifetime}, "))
+                (self.span(), format!("{new_lifetime}, "))
             }
 
             // The user wrote `Path<>`, and omitted the `'_`..
             (Implicit, Path { angle_brackets: AngleBrackets::Empty }) => {
-                (self.ident.span, format!("{new_lifetime}"))
+                (self.span(), format!("{new_lifetime}"))
             }
 
             // The user wrote `Path` and omitted the `<'_>`.
             (Implicit, Path { angle_brackets: AngleBrackets::Missing }) => {
-                (self.ident.span.shrink_to_hi(), format!("<{new_lifetime}>"))
+                (self.span().shrink_to_hi(), format!("<{new_lifetime}>"))
             }
 
             // The user wrote `&type` or `&mut type`.
-            (Implicit, Reference) => (self.ident.span, format!("{new_lifetime} ")),
+            (Implicit, Reference) => (self.span(), format!("{new_lifetime} ")),
 
             (Implicit, source) => {
                 unreachable!("can't suggest for a implicit lifetime of {source:?}")
@@ -527,7 +559,7 @@ pub enum GenericArg<'hir> {
 impl GenericArg<'_> {
     pub fn span(&self) -> Span {
         match self {
-            GenericArg::Lifetime(l) => l.ident.span,
+            GenericArg::Lifetime(l) => l.span(),
             GenericArg::Type(t) => t.span,
             GenericArg::Const(c) => c.span(),
             GenericArg::Infer(i) => i.span,
@@ -736,7 +768,7 @@ impl GenericBound<'_> {
     pub fn span(&self) -> Span {
         match self {
             GenericBound::Trait(t, ..) => t.span,
-            GenericBound::Outlives(l) => l.ident.span,
+            GenericBound::Outlives(l) => l.span(),
             GenericBound::Use(_, span) => *span,
         }
     }
@@ -3567,7 +3599,7 @@ impl PreciseCapturingArg<'_> {
 
     pub fn name(self) -> Symbol {
         match self {
-            PreciseCapturingArg::Lifetime(lt) => lt.ident.name,
+            PreciseCapturingArg::Lifetime(lt) => lt.ident().name,
             PreciseCapturingArg::Param(param) => param.ident.name,
         }
     }
@@ -4738,7 +4770,7 @@ impl<'hir> Node<'hir> {
             | Node::Field(FieldDef { ident, .. })
             | Node::Variant(Variant { ident, .. })
             | Node::PathSegment(PathSegment { ident, .. }) => Some(*ident),
-            Node::Lifetime(lt) => Some(lt.ident),
+            Node::Lifetime(lt) => lt.opt_ident(),
             Node::GenericParam(p) => Some(p.name.ident()),
             Node::AssocItemConstraint(c) => Some(c.ident),
             Node::PatField(f) => Some(f.ident),

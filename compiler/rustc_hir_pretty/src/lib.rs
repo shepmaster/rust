@@ -18,9 +18,7 @@ use rustc_ast_pretty::pprust::state::MacHeader;
 use rustc_ast_pretty::pprust::{Comments, PrintState};
 use rustc_attr_data_structures::{AttributeKind, PrintAttribute};
 use rustc_hir::{
-    BindingMode, ByRef, ConstArgKind, GenericArg, GenericBound, GenericParam, GenericParamKind,
-    HirId, ImplicitSelfKind, LifetimeParamKind, Node, PatKind, PreciseCapturingArg, RangeEnd, Term,
-    TyPatKind,
+    BindingMode, ByRef, ConstArgKind, GenericArg, GenericBound, GenericParam, GenericParamKind, HirId, ImplicitSelfKind, LifetimeParamKind, LifetimeSyntax, Node, PatKind, PreciseCapturingArg, RangeEnd, Term, TyPatKind
 };
 use rustc_span::source_map::SourceMap;
 use rustc_span::{FileName, Ident, Span, Symbol, kw};
@@ -2374,7 +2372,9 @@ impl<'a> State<'a> {
     }
 
     fn print_lifetime(&mut self, lifetime: &hir::Lifetime) {
-        self.print_ident(lifetime.ident)
+        if let LifetimeSyntax::Explicit(ident) = lifetime.syntax {
+            self.print_ident(ident);
+        }
     }
 
     fn print_where_clause(&mut self, generics: &hir::Generics<'_>) {

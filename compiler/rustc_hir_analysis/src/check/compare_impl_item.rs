@@ -1172,7 +1172,7 @@ fn check_region_bounds_on_impl_item<'tcx>(
                 }) => {
                     for b in *bounds {
                         if let hir::GenericBound::Outlives(lt) = b {
-                            bounds_span.push(lt.ident.span);
+                            bounds_span.push(lt.span());
                         }
                     }
                 }

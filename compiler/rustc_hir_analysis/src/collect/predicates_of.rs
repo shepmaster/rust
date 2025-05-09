@@ -293,7 +293,7 @@ fn gather_explicit_predicates_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::Gen
                     let (r2, span) = match bound {
                         hir::GenericBound::Outlives(lt) => (
                             icx.lowerer().lower_lifetime(lt, RegionInferReason::RegionPredicate),
-                            lt.ident.span,
+                            lt.span(),
                         ),
                         bound => {
                             span_bug!(

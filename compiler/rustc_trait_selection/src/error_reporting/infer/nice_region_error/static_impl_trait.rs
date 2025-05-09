@@ -164,9 +164,9 @@ pub fn suggest_new_region_bound(
                 let ty = Ty::new_opaque(tcx, did, ty::GenericArgs::identity_for_item(tcx, did));
 
                 if let Some(span) = opaque.bounds.iter().find_map(|arg| match arg {
-                    GenericBound::Outlives(Lifetime {
-                        kind: LifetimeKind::Static, ident, ..
-                    }) => Some(ident.span),
+                    GenericBound::Outlives(lt @ Lifetime {
+                        kind: LifetimeKind::Static, ..
+                    }) => Some(lt.span()),
                     _ => None,
                 }) {
                     if let Some(explicit_static) = &explicit_static {
@@ -187,8 +187,8 @@ pub fn suggest_new_region_bound(
                     }
                 } else if opaque.bounds.iter().any(|arg| {
                     matches!(arg,
-                        GenericBound::Outlives(Lifetime { ident, .. })
-                        if ident.name.to_string() == lifetime_name )
+                        GenericBound::Outlives(lt)
+                        if lt.ident().name.to_string() == lifetime_name )
                 }) {
                 } else {
                     // get a lifetime name of existing named lifetimes if any
@@ -260,14 +260,14 @@ pub fn suggest_new_region_bound(
                         &plus_lt,
                         Applicability::MaybeIncorrect,
                     );
-                } else if lt.ident.name.to_string() != lifetime_name {
+                } else if lt.ident().name.to_string() != lifetime_name {
                     // With this check we avoid suggesting redundant bounds. This
                     // would happen if there are nested impl/dyn traits and only
                     // one of them has the bound we'd suggest already there, like
                     // in `impl Foo<X = dyn Bar> + '_`.
                     if let Some(explicit_static) = &explicit_static {
                         err.span_suggestion_verbose(
-                            lt.ident.span,
+                            lt.span(),
                             format!("{consider} the trait object's {explicit_static}"),
                             &lifetime_name,
                             Applicability::MaybeIncorrect,

@@ -401,7 +401,7 @@ impl<'tcx> dyn HirTyLowerer<'tcx> + '_ {
                         ty::ClauseKind::TypeOutlives(ty::OutlivesPredicate(param_ty, region)),
                         bound_vars,
                     );
-                    bounds.push((bound.upcast(self.tcx()), lifetime.ident.span));
+                    bounds.push((bound.upcast(self.tcx()), lifetime.span()));
                 }
                 hir::GenericBound::Use(..) => {
                     // We don't actually lower `use` into the type layer.

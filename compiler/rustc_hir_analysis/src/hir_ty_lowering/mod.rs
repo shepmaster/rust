@@ -361,7 +361,7 @@ impl<'tcx> dyn HirTyLowerer<'tcx> + '_ {
         if let Some(resolved) = self.tcx().named_bound_var(lifetime.hir_id) {
             self.lower_resolved_lifetime(resolved)
         } else {
-            self.re_infer(lifetime.ident.span, reason)
+            self.re_infer(lifetime.span(), reason)
         }
     }
 

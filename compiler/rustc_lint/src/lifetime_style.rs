@@ -206,9 +206,17 @@ fn report_mismatches<'tcx>(
 
             for info in relevant_lifetimes {
                 use LifetimeSource::*;
-                use LifetimeSyntax::*;
+                //                use LifetimeSyntax::*;
+                use X::*;
 
-                let syntax_source = (info.lifetime.syntax, info.lifetime.source);
+                enum X { Implicit, ExplicitBound, ExplicitAnonymous }
+
+                let x = match info.lifetime.syntax {
+                    LifetimeSyntax::Implicit => Implicit,
+                    _ => if info.lifetime.is_anonymous() { ExplicitAnonymous } else { ExplicitBound }
+                };
+
+                let syntax_source = (x, info.lifetime.source);
 
                 if let (ExplicitBound, _) = syntax_source {
                     bound_lifetime = Some(info);
@@ -313,8 +321,9 @@ fn report_mismatches<'tcx>(
             let inputs = input_info.iter().map(|info| info.reporting_span()).collect();
             let outputs = output_info.iter().map(|info| info.reporting_span()).collect();
 
-            let explicit_bound_suggestion = bound_lifetime.map(|info| {
-                build_mismatch_suggestion(info.lifetime_name(), &suggest_change_to_explicit_bound)
+            let explicit_bound_suggestion = bound_lifetime.and_then(|info| {
+                let name = info.lifetime_name()?;
+                Some(build_mismatch_suggestion(name, &suggest_change_to_explicit_bound))
             });
 
             let is_bound_static = bound_lifetime.is_some_and(|info| info.is_static());
@@ -390,7 +399,7 @@ fn report_mismatches<'tcx>(
             );
 
             let lifetime_name =
-                bound_lifetime.map(|info| info.lifetime_name()).unwrap_or("'_").to_owned();
+                bound_lifetime.and_then(|info| info.lifetime_name()).unwrap_or("'_").to_owned();
 
             // We can produce a number of suggestions which may overwhelm
             // the user. Instead, we order the suggestions based on Rust
@@ -478,8 +487,11 @@ struct Info<'tcx> {
 }
 
 impl<'tcx> Info<'tcx> {
-    fn lifetime_name(&self) -> &str {
-        self.lifetime.ident.as_str()
+    fn lifetime_name(&self) -> Option<&str> {
+        match &self.lifetime.syntax {
+            LifetimeSyntax::Implicit => None,
+            LifetimeSyntax::Explicit(e) => Some(e.as_str())
+        }
     }
 
     fn is_static(&self) -> bool {
@@ -490,7 +502,7 @@ impl<'tcx> Info<'tcx> {
     /// to include the type. Otherwise we end up pointing at nothing,
     /// which is a bit confusing.
     fn reporting_span(&self) -> Span {
-        if self.lifetime.is_implicit() { self.type_span } else { self.lifetime.ident.span }
+        if self.lifetime.is_implicit() { self.type_span } else { self.lifetime.span() }
     }
 
     /// When hiding a lifetime in a reference, we want to remove the

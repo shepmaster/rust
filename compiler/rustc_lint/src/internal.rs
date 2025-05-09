@@ -255,7 +255,7 @@ fn gen_args(segment: &hir::PathSegment<'_>) -> String {
             .iter()
             .filter_map(|arg| {
                 if let hir::GenericArg::Lifetime(lt) = arg {
-                    Some(lt.ident.to_string())
+                    Some(lt.ident().to_string())
                 } else {
                     None
                 }

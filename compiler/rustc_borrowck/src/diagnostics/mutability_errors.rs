@@ -1625,7 +1625,7 @@ fn get_mut_span_in_struct_field<'tcx>(
         && let hir::Node::Field(field) = tcx.hir_node_by_def_id(field.did.as_local()?)
         && let hir::TyKind::Ref(lt, hir::MutTy { mutbl: hir::Mutability::Not, ty }) = field.ty.kind
     {
-        return Some(lt.ident.span.between(ty.span));
+        return Some(lt.span().between(ty.span));
     }
 
     None

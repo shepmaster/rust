@@ -492,7 +492,7 @@ fn has_late_bound_regions<'tcx>(tcx: TyCtxt<'tcx>, node: Node<'tcx>) -> Option<S
                     | rbv::ResolvedArg::Free(..)
                     | rbv::ResolvedArg::Error(_),
                 )
-                | None => ControlFlow::Break(lt.ident.span),
+                | None => ControlFlow::Break(lt.span()),
             }
         }
     }

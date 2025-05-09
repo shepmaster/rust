@@ -1654,7 +1654,7 @@ impl<'tcx> Liveness<'_, 'tcx> {
                 // `&'name Ty` -> `&'name mut Ty` or `&Ty` -> `&mut Ty`
                 Some(mut_ty.ty.span.shrink_to_lo())
             };
-            let pre = if lt.ident.span.is_empty() { "" } else { " " };
+            let pre = if lt.span().is_empty() { "" } else { " " };
             Some(errors::UnusedAssignSuggestion {
                 ty_span,
                 pre,

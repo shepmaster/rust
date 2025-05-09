@@ -889,9 +889,9 @@ impl<'infcx, 'tcx> MirBorrowckCtxt<'_, 'infcx, 'tcx> {
                 }
                 if let TyKind::TraitObject(_, lt) = alias_ty.kind {
                     if lt.kind == hir::LifetimeKind::ImplicitObjectLifetimeDefault {
-                        spans_suggs.push((lt.ident.span.shrink_to_hi(), " + 'a".to_string()));
+                        spans_suggs.push((lt.span().shrink_to_hi(), " + 'a".to_string()));
                     } else {
-                        spans_suggs.push((lt.ident.span, "'a".to_string()));
+                        spans_suggs.push((lt.span(), "'a".to_string()));
                     }
                 }
             }

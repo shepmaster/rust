@@ -1020,7 +1020,7 @@ impl<'tcx> TyCtxt<'tcx> {
             Node::Arm(arm) => arm.span,
             Node::Block(block) => block.span,
             Node::Ctor(..) => self.hir_span_with_body(self.parent_hir_id(hir_id)),
-            Node::Lifetime(lifetime) => lifetime.ident.span,
+            Node::Lifetime(lifetime) => lifetime.span(),
             Node::GenericParam(param) => param.span,
             Node::Infer(i) => i.span,
             Node::LetStmt(local) => local.span,

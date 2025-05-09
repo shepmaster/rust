@@ -1272,7 +1272,7 @@ fn suggest_precise_capturing<'tcx>(
         _ => None,
     }) {
         let last_lifetime_span = args.iter().rev().find_map(|arg| match arg {
-            hir::PreciseCapturingArg::Lifetime(lt) => Some(lt.ident.span),
+            hir::PreciseCapturingArg::Lifetime(lt) => Some(lt.span()),
             _ => None,
         });
 

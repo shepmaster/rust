@@ -102,7 +102,7 @@ impl<'a, 'hir> NodeCollector<'a, 'hir> {
                 && span.parent().is_none()
                 && !span.is_dummy()
             {
-                span_bug!(span, "span without a parent: {:#?}, {node:?}", span.data())
+                span_bug!(span, "span without a parent: {:#?}, {node:?}", span.data()) // FIXME: This is firing, but why
             }
         }
 
@@ -353,7 +353,7 @@ impl<'a, 'hir> Visitor<'hir> for NodeCollector<'a, 'hir> {
     }
 
     fn visit_lifetime(&mut self, lifetime: &'hir Lifetime) {
-        self.insert(lifetime.ident.span, lifetime.hir_id, Node::Lifetime(lifetime));
+        self.insert(lifetime.span(), lifetime.hir_id, Node::Lifetime(lifetime));
     }
 
     fn visit_variant(&mut self, v: &'hir Variant<'hir>) {

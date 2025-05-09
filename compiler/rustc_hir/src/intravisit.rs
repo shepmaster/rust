@@ -1352,7 +1352,8 @@ pub fn walk_inf<'v, V: Visitor<'v>>(visitor: &mut V, inf: &'v InferArg) -> V::Re
 
 pub fn walk_lifetime<'v, V: Visitor<'v>>(visitor: &mut V, lifetime: &'v Lifetime) -> V::Result {
     try_visit!(visitor.visit_id(lifetime.hir_id));
-    visitor.visit_ident(lifetime.ident)
+    visit_opt!(visitor, visit_ident, lifetime.opt_ident());
+    V::Result::output()
 }
 
 pub fn walk_qpath<'v, V: Visitor<'v>>(

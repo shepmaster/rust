@@ -661,10 +661,11 @@ impl<'a, 'tcx> Visitor<'tcx> for BoundVarContext<'a, 'tcx> {
                 LifetimeKind::ImplicitObjectLifetimeDefault
                 | LifetimeKind::Infer
                 | LifetimeKind::Static => {
+                    let ident = lt.ident();
                     self.tcx.dcx().emit_err(errors::BadPreciseCapture {
-                        span: lt.ident.span,
+                        span: ident.span,
                         kind: "lifetime",
-                        found: format!("`{}`", lt.ident.name),
+                        found: format!("`{}`", ident.name),
                     });
                 }
             },
@@ -1259,7 +1260,7 @@ impl<'a, 'tcx> BoundVarContext<'a, 'tcx> {
                         let mut diag: rustc_errors::Diag<'_> = rustc_session::parse::feature_err(
                             &self.tcx.sess,
                             sym::anonymous_lifetime_in_impl_trait,
-                            lifetime_ref.ident.span,
+                            lifetime_ref.span(),
                             "anonymous lifetimes in `impl Trait` are unstable",
                         );
 
@@ -1277,7 +1278,7 @@ impl<'a, 'tcx> BoundVarContext<'a, 'tcx> {
                             let suggestions = vec![lifetime_sugg, new_param_sugg];
 
                             diag.span_label(
-                                lifetime_ref.ident.span,
+                                lifetime_ref.span(),
                                 "expected named lifetime parameter",
                             );
                             diag.multipart_suggestion(
@@ -1315,14 +1316,14 @@ impl<'a, 'tcx> BoundVarContext<'a, 'tcx> {
         };
 
         if let Some(mut def) = result {
-            def = self.remap_opaque_captures(&opaque_capture_scopes, def, lifetime_ref.ident);
+            def = self.remap_opaque_captures(&opaque_capture_scopes, def, lifetime_ref.fallback_ident());
 
             if let ResolvedArg::EarlyBound(..) = def {
                 // Do not free early-bound regions, only late-bound ones.
             } else if let ResolvedArg::LateBound(_, _, param_def_id) = def
                 && let Some(what) = crossed_late_boundary
             {
-                let use_span = lifetime_ref.ident.span;
+                let use_span = lifetime_ref.span();
                 let def_span = self.tcx.def_span(param_def_id);
                 let guar = match self.tcx.def_kind(param_def_id) {
                     DefKind::LifetimeParam => {
@@ -1382,7 +1383,7 @@ impl<'a, 'tcx> BoundVarContext<'a, 'tcx> {
                     where_bound_origin: Some(hir::PredicateOrigin::ImplTrait), ..
                 } => {
                     self.tcx.dcx().emit_err(errors::LateBoundInApit::Lifetime {
-                        span: lifetime_ref.ident.span,
+                        span: lifetime_ref.span(),
                         param_span: self.tcx.def_span(region_def_id),
                     });
                     return;
@@ -1401,7 +1402,7 @@ impl<'a, 'tcx> BoundVarContext<'a, 'tcx> {
         }
 
         self.tcx.dcx().span_delayed_bug(
-            lifetime_ref.ident.span,
+            lifetime_ref.span(),
             format!("Could not resolve {:?} in scope {:#?}", lifetime_ref, self.scope,),
         );
     }
@@ -2005,14 +2006,14 @@ impl<'a, 'tcx> BoundVarContext<'a, 'tcx> {
             }
         };
 
-        lifetime = self.remap_opaque_captures(&opaque_capture_scopes, lifetime, lifetime_ref.ident);
+        lifetime = self.remap_opaque_captures(&opaque_capture_scopes, lifetime, lifetime_ref.fallback_ident());
 
         self.insert_lifetime(lifetime_ref, lifetime);
     }
 
     #[instrument(level = "debug", skip(self))]
     fn insert_lifetime(&mut self, lifetime_ref: &'tcx hir::Lifetime, def: ResolvedArg) {
-        debug!(span = ?lifetime_ref.ident.span);
+        debug!(span = ?lifetime_ref.span());
         self.rbv.defs.insert(lifetime_ref.hir_id.local_id, def);
     }
 
